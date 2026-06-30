@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FaUserTie } from "react-icons/fa";
 import { IoStorefrontSharp } from "react-icons/io5";
 import NavigationBtns from "./NavigationBtns";
@@ -24,6 +25,16 @@ const roles = [
 ];
 
 export default function StepTwo({ role, setRole, onNext, onBack }) {
+  const [error, setError] = useState("");
+
+  const handleNext = () => {
+    if (!role) {
+      setError("يرجى اختيار نوع الحساب");
+      return;
+    }
+
+    onNext(role);
+  };
   return (
     <div className="px-6 pb-6 my-2" dir="rtl">
       <p className="text-sm text-gray-700 font-medium md:text-center mb-4">
@@ -71,6 +82,11 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
         ))}
       </div>
 
+        {/* error message */}
+      {error && (
+        <p className="text-red-500 text-xs mb-2 text-center">{error}</p>
+      )}
+
       {/* Info box */}
       <div className="bg-[#1CA7F724] border border-blue-100 rounded-xl p-3 mb-2 shadow shadow-[#2EAFCD80]/50">
         <p className="text-sm text-[#025E73] font-semibold text-center mb-1">
@@ -82,7 +98,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
         </p>
       </div>
 
-      <NavigationBtns onNext={() => onNext(role)} onBack={onBack} />
+      <NavigationBtns onNext={handleNext} onBack={onBack} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Swal from "sweetalert2";
 import logo from "../../../assets/images/logo.svg";
@@ -8,7 +8,7 @@ import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
 import StepTwo from "./components/StepTwo";
 import StepThree from "./components/StepThree";
-// TODO: اتسبداله بالAPI الحقيقس
+// اتسبداله بالAPI الحقيقس
 import { mockRegister } from "../../../services/auth.mock";
 
 // حركة في الستيب بروجرس
@@ -30,7 +30,7 @@ const stepVariants = {
 };
 
 export default function Register() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [role, setRole] = useState("");
@@ -68,6 +68,8 @@ export default function Register() {
   const handleStepOneNext = () => goNext();
 
   const handleStepTwoNext = (selectedRole) => {
+    if (!selectedRole) return;
+
     setRole(selectedRole);
     setStep(3);
   };
@@ -94,7 +96,7 @@ export default function Register() {
         timer: 8000,
         timerProgressBar: true,
       });
-      // navigate("/register");
+      navigate("/login");
     } catch (error) {
       console.error({ error });
     } finally {

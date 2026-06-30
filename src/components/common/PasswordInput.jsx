@@ -20,7 +20,7 @@ export default function PasswordInput({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"
             aria-label={show ? " إخفاء كلمة المرور " : " إظهار كلمة المرور "}
         >
-            {show ? <FaEyeSlash size={15}/> : <FaEye size={15}/>}
+            {show ? <FaEyeSlash size={15} color="gray"/> : <FaEye size={15} color="gray"/>}
         </button>
     )
     return (
@@ -28,11 +28,11 @@ export default function PasswordInput({
             label={label}
             placeholder={placeholder}
             type={show ? "text" : "password"}
-            icon={<FiLock size ={14} />}
+            icon={<FiLock size ={15} />}
             required={required}
             registration={registration}
             error={error}
-            extraLeftElement={toggleShow}
+            actionIcon={toggleShow}
         />
     )
 }

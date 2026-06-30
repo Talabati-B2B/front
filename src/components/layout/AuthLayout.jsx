@@ -1,4 +1,4 @@
-import background from "../../assets/images/Background.png";
+import background from "../../assets/images/screen 1.svg";
 
 export default function RegisterLayout({ children }) {
   return (

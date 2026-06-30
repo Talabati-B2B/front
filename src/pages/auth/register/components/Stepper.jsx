@@ -25,7 +25,7 @@ export default function Stepper({ currentStep }) {
                 <motion.div
                   initial={false}
                   animate={{
-                    scaleX: isDone ? 1 : 0,
+                     scaleX: step.number < currentStep ? 1 : 0 ,
                   }}
                   transition={{ duration: 0.3 }}
                   style={{ originX: 1 }}

@@ -147,16 +147,18 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
     },
   });
 
-  const values = watch();
-
-  useEffect(() => {
+ useEffect(() => {
+  const subscription = watch((values) => {
     setData({
       ...values,
       tab,
       docType,
       docFile,
     });
-  }, [values, tab, docType, docFile, setData]);
+  });
+
+  return () => subscription.unsubscribe();
+}, [watch, tab, docType, docFile, setData]);
   
   // Tab: info to docs
   const handleNext = async () => {
