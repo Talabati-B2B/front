@@ -74,11 +74,7 @@ export default function Register() {
   };
 
   const handleFinalSubmit = async (stepThreeData) => {
-    console.log("🔥 FINAL SUBMIT FIRED");
-    console.log(stepThreeData);
     const fullData = { ...stepOneData, role, ...stepThreeData };
-    console.log("Full registration data:", fullData);
-
     setIsLoading(true);
     try {
       await register(fullData);
@@ -109,7 +105,7 @@ export default function Register() {
     <AuthLayout>
       {/* Logo */}
       <div className="flex justify-center pt-6 pb-2">
-        <img src={logo} alt="Talabati Logo" className="w-[237px] h-auto" />
+        <img src={logo} alt="Talabati Logo" className="w-59.25 h-auto" />
       </div>
       {/* progress bar */}
       <Stepper currentStep={step} />

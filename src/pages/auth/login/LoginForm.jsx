@@ -6,7 +6,6 @@ import Logo2 from "../../../assets/images/logo2.svg";
 import { FaRegUser } from "react-icons/fa";
 import { RiLock2Fill } from "react-icons/ri";
 import { login } from "../../../services/authService";
-import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
@@ -18,14 +17,17 @@ export default function LoginForm() {
     mode: "onTouched",
   });
 
-  const { loginUser } = useAuth();
   const navigate = useNavigate();
+
   const onSubmit = async (data) => {
     try {
       const res = await login(data);
+
       const userData = res.data.user;
       const token = res.data.token;
-      loginUser(userData, token); //تخزين بيانات المستخدم عبر كونتيكست
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(userData));
       navigate("/"); // Redirect to the home page after successful login
       localStorage.setItem("token", res.data.token);
     } catch (err) {
