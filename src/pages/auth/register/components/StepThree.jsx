@@ -254,11 +254,13 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
           </div>
           {/* final submit btn */}
           <NavigationBtns
-            isSubmit={true}
+            onBack={() => setTab("info")}
             nextLabel={config.submitLabel}
             nextDisabled={isLoading}
-            onBack={() => setTab("info")}
           />
+          <button type="submit" disabled={isLoading}>
+            {config.submitLabel}
+          </button>
         </div>
       )}
     </form>
