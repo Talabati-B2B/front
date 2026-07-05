@@ -53,7 +53,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
           >
             {/* Icon */}
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shrink-0
               ${role === r.id ? r.iconBg : "bg-gray-200"}
             `}
             >
@@ -70,7 +70,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
 
             {/* Radio */}
             <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
               ${role === r.id ? r.iconBg : "border-gray-300"}
             `}
             >

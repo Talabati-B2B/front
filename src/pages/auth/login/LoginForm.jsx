@@ -5,6 +5,9 @@ import { Button, Input, PasswordInput } from "../../../components/common";
 import Logo2 from "../../../assets/images/logo2.svg";
 import { FaRegUser } from "react-icons/fa";
 import { RiLock2Fill } from "react-icons/ri";
+import { login } from "../../../services/authService";
+import { useAuth } from "../../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
   const {
@@ -15,11 +18,20 @@ export default function LoginForm() {
     mode: "onTouched",
   });
 
+  const { loginUser } = useAuth();
+  const navigate = useNavigate();
   const onSubmit = async (data) => {
-    console.log(data);
-    // await login(data)
+    try {
+      const res = await login(data);
+      const userData = res.data.user;
+      const token = res.data.token;
+      loginUser(userData, token); //تخزين بيانات المستخدم عبر كونتيكست
+      navigate("/"); // Redirect to the home page after successful login
+      localStorage.setItem("token", res.data.token);
+    } catch (err) {
+      console.error(err);
+    }
   };
-
   return (
     <div className="h-screen flex items-center justify-center overflow-hidden px-6 py-5 md:px-12 bg-white">
       <motion.div
@@ -33,7 +45,7 @@ export default function LoginForm() {
           <img src={Logo2} alt="Talabati" className="" />
 
           <h1 className="text-xl font-semibold text-[#1a3a5c]">
-            شريكك الاكترورني في التوريد والتوصيل
+            شريكك الالكتروني في التوريد والتوصيل
           </h1>
         </div>
 
