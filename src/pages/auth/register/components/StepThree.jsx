@@ -167,6 +167,9 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
   };
   // final submit
   const onFormSubmit = (data) => {
+    alert("FORM SUBMIT FIRED");
+    console.log("DATA:", data);
+
     if (!docFile) {
       setDocError(" يُرجى رفع وثيقة واحدة على الأقل ");
       return;
