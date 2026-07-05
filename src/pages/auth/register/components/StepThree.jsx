@@ -147,19 +147,19 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
     },
   });
 
- useEffect(() => {
-  const subscription = watch((values) => {
-    setData({
-      ...values,
-      tab,
-      docType,
-      docFile,
+  useEffect(() => {
+    const subscription = watch((values) => {
+      setData({
+        ...values,
+        tab,
+        docType,
+        docFile,
+      });
     });
-  });
 
-  return () => subscription.unsubscribe();
-}, [watch, tab, docType, docFile, setData]);
-  
+    return () => subscription.unsubscribe();
+  }, [watch, tab, docType, docFile, setData]);
+
   // Tab: info to docs
   const handleNext = async () => {
     const valid = await trigger(["businessName", "businessType", "location"]);
@@ -251,9 +251,10 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
           </div>
           {/* final submit btn */}
           <NavigationBtns
-            onBack={() => setTab("info")}
-            nextLabel={isLoading ? " ...جاري الارسال " : config.submitLabel}
+            isSubmit={true}
+            nextLabel={config.submitLabel}
             nextDisabled={isLoading}
+            onBack={() => setTab("info")}
           />
         </div>
       )}

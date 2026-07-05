@@ -74,6 +74,8 @@ export default function Register() {
   };
 
   const handleFinalSubmit = async (stepThreeData) => {
+    console.log("🔥 FINAL SUBMIT FIRED");
+    console.log(stepThreeData);
     const fullData = { ...stepOneData, role, ...stepThreeData };
     console.log("Full registration data:", fullData);
 

@@ -7,13 +7,14 @@ export default function NavigationBtns({
   nextLabel = " التالي ",
   showBack = true,
   nextDisabled = false,
+  isSubmit = false,
 }) {
   return (
     <div
       className={`flex flex-row-reverse gap-3 mt-6 ${showBack ? "justify-between" : "justify-center"}`}
     >
       <Button
-        type="submit"
+        type={isSubmit ? "submit" : "button"}
         onClick={onNext}
         disabled={nextDisabled}
         variant="primary"
