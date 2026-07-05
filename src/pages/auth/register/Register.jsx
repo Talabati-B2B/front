@@ -8,8 +8,7 @@ import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
 import StepTwo from "./components/StepTwo";
 import StepThree from "./components/StepThree";
-// اتسبداله بالAPI الحقيقس
-import { mockRegister } from "../../../services/auth.mock";
+import { register } from "../../../services/authService";
 
 // حركة في الستيب بروجرس
 const stepVariants = {
@@ -80,8 +79,7 @@ export default function Register() {
 
     setIsLoading(true);
     try {
-      // TODO: استبدال mockRegister ب registerUser من auth.service.js
-      await mockRegister(fullData);
+      await register(fullData);
 
       // successful notifucation
       await Swal.fire({
@@ -93,8 +91,9 @@ export default function Register() {
         background: "#ffffff",
         color: "#1f2937",
         iconColor: "#22c55e",
-        timer: 8000,
+        timer: 6000,
         timerProgressBar: true,
+        toast: true,
       });
       navigate("/login");
     } catch (error) {

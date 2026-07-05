@@ -5,7 +5,7 @@ import { Input, Button } from "../../../components/common";
 import ForgetImg from "../../../assets/images/forget-password.png";
 import { FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import Swal from "sweetalert2";
+import { forgotPassword } from "../../../services/authService";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -16,38 +16,11 @@ export default function ForgotPassword() {
     formState: { errors, isSubmitting },
   } = useForm();
 
-  //Mock API
-  const mockForgotPasswordAPI = (data) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (data.email === "fail@test.com") {
-          reject("Error");
-        } else {
-          resolve("Success");
-        }
-      }, 1200);
-    });
-  };
-
   const onSubmit = async (data) => {
     try {
-      await mockForgotPasswordAPI(data);
-
-      await Swal.fire({
-        icon: "success",
-        title: "تم الإرسال 📩",
-        text: "تم إرسال رابط إعادة تعيين كلمة المرور",
-        confirmButtonText: "حسناً",
-        toast: true,
-      });
-
+      await forgotPassword(data.email);
       navigate("/reset-password");
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "فشل الإرسال",
-        text: "تأكد من البريد الإلكتروني وحاول مرة أخرى",
-      });
       console.error(err);
     }
   };

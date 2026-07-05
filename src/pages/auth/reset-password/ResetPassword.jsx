@@ -5,6 +5,7 @@ import { PasswordInput, Button } from "../../../components/common";
 import ResetImg from "../../../assets/images/forget-password.png";
 import { RiLock2Fill } from "react-icons/ri";
 import Swal from "sweetalert2";
+import { resetPassword } from "../../../services/authService";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -16,28 +17,16 @@ export default function ResetPassword() {
     formState: { errors, isSubmitting },
   } = useForm();
 
-  // Mock API
-  const mockResetPasswordAPI = (data) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (data.password === "123456") {
-          reject("Weak password");
-        } else {
-          resolve("Success");
-        }
-      }, 1200);
-    });
-  };
-
   const onSubmit = async (data) => {
     try {
-      await mockResetPasswordAPI(data);
+      await resetPassword(data);
 
       await Swal.fire({
         icon: "success",
         title: "تم التحديث بنجاح 🎉",
         text: "تم تغيير كلمة المرور بنجاح",
         confirmButtonText: "تسجيل الدخول",
+        toast: true,
       });
 
       navigate("/login");
