@@ -5,8 +5,6 @@ import { FiMapPin } from "react-icons/fi";
 import NavigationBtns from "./NavigationBtns";
 import { useEffect } from "react";
 
-// import { data } from "react-router-dom";
-
 // Tab switcher component
 function TabSwitcher({ activeTab, onChange }) {
   const tabs = [
@@ -257,10 +255,8 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
             onBack={() => setTab("info")}
             nextLabel={config.submitLabel}
             nextDisabled={isLoading}
+            nextType="submit"
           />
-          <button type="submit" disabled={isLoading}>
-            {config.submitLabel}
-          </button>
         </div>
       )}
     </form>

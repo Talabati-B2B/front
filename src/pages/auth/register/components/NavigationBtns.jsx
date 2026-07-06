@@ -4,17 +4,20 @@ import { FiArrowLeft, FiArrowRight } from "react-icons/fi";
 export default function NavigationBtns({
   onNext,
   onBack,
-  nextLabel = " التالي ",
+  nextLabel = "التالي",
   showBack = true,
   nextDisabled = false,
+  nextType = "button",
 }) {
   return (
     <div
-      className={`flex flex-row-reverse gap-3 mt-6 ${showBack ? "justify-between" : "justify-center"}`}
+      className={`flex flex-row-reverse gap-3 mt-6 ${
+        showBack ? "justify-between" : "justify-center"
+      }`}
     >
       <Button
-        type="button"
-        onClick={onNext}
+        type={nextType}
+        onClick={nextType === "button" ? onNext : undefined}
         disabled={nextDisabled}
         variant="primary"
         fullWidth
