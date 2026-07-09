@@ -5,8 +5,6 @@ import { FiMapPin } from "react-icons/fi";
 import NavigationBtns from "./NavigationBtns";
 import { useEffect } from "react";
 
-// import { data } from "react-router-dom";
-
 // Tab switcher component
 function TabSwitcher({ activeTab, onChange }) {
   const tabs = [
@@ -147,19 +145,19 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
     },
   });
 
- useEffect(() => {
-  const subscription = watch((values) => {
-    setData({
-      ...values,
-      tab,
-      docType,
-      docFile,
+  useEffect(() => {
+    const subscription = watch((values) => {
+      setData({
+        ...values,
+        tab,
+        docType,
+        docFile,
+      });
     });
-  });
 
-  return () => subscription.unsubscribe();
-}, [watch, tab, docType, docFile, setData]);
-  
+    return () => subscription.unsubscribe();
+  }, [watch, tab, docType, docFile, setData]);
+
   // Tab: info to docs
   const handleNext = async () => {
     const valid = await trigger(["businessName", "businessType", "location"]);
@@ -167,6 +165,9 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
   };
   // final submit
   const onFormSubmit = (data) => {
+    alert("FORM SUBMIT FIRED");
+    console.log("DATA:", data);
+
     if (!docFile) {
       setDocError(" يُرجى رفع وثيقة واحدة على الأقل ");
       return;
@@ -252,8 +253,9 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
           {/* final submit btn */}
           <NavigationBtns
             onBack={() => setTab("info")}
-            nextLabel={isLoading ? " ...جاري الارسال " : config.submitLabel}
+            nextLabel={config.submitLabel}
             nextDisabled={isLoading}
+            nextType="submit"
           />
         </div>
       )}
