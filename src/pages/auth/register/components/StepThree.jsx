@@ -5,6 +5,8 @@ import { FiMapPin } from "react-icons/fi";
 import NavigationBtns from "./NavigationBtns";
 import { useEffect } from "react";
 
+// import { data } from "react-router-dom";
+
 // Tab switcher component
 function TabSwitcher({ activeTab, onChange }) {
   const tabs = [
@@ -100,7 +102,7 @@ const CONFIG = {
     namePlaceholder: " سوبرماركت الأمل ",
     nameLabel: " اسم المتجر ",
     typeLabel: " نوع المتجر ",
-    typeOptions: [1, 2, 3, " متجر تجزئة ", " أخرى"],
+    typeOptions: [" سوبرماركت ", " صيدلية ", " مطعم ", " متجر تجزئة ", " أخرى"],
     locationLabel: " موقع المتجر ",
     submitLabel: " إنشاء الحساب ",
   },
@@ -109,9 +111,9 @@ const CONFIG = {
     nameLabel: " اسم الشركة ",
     typeLabel: " نوع النشاط التجاري ",
     typeOptions: [
-      1,
-      2,
-      3,
+      " مواد غذائية ",
+      " منظفات ",
+      " أدوية ",
       " متنوع ",
       " مواد بناء ",
       " إلكترونيات ",
@@ -145,19 +147,17 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
     },
   });
 
+  const values = watch();
+
   useEffect(() => {
-    const subscription = watch((values) => {
-      setData({
-        ...values,
-        tab,
-        docType,
-        docFile,
-      });
+    setData({
+      ...values,
+      tab,
+      docType,
+      docFile,
     });
-
-    return () => subscription.unsubscribe();
-  }, [watch, tab, docType, docFile, setData]);
-
+  }, [values, tab, docType, docFile, setData]);
+  
   // Tab: info to docs
   const handleNext = async () => {
     const valid = await trigger(["businessName", "businessType", "location"]);
@@ -165,9 +165,6 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
   };
   // final submit
   const onFormSubmit = (data) => {
-    alert("FORM SUBMIT FIRED");
-    console.log("DATA:", data);
-
     if (!docFile) {
       setDocError(" يُرجى رفع وثيقة واحدة على الأقل ");
       return;
@@ -253,9 +250,8 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
           {/* final submit btn */}
           <NavigationBtns
             onBack={() => setTab("info")}
-            nextLabel={config.submitLabel}
+            nextLabel={isLoading ? " ...جاري الارسال " : config.submitLabel}
             nextDisabled={isLoading}
-            nextType="submit"
           />
         </div>
       )}
