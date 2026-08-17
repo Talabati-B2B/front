@@ -5,6 +5,8 @@ import { FiMapPin } from "react-icons/fi";
 import NavigationBtns from "./NavigationBtns";
 import { useEffect } from "react";
 
+// import { data } from "react-router-dom";
+
 // Tab switcher component
 function TabSwitcher({ activeTab, onChange }) {
   const tabs = [
@@ -100,7 +102,13 @@ const CONFIG = {
     namePlaceholder: " سوبرماركت الأمل ",
     nameLabel: " اسم المتجر ",
     typeLabel: " نوع المتجر ",
-    typeOptions: [1, 2, 3, " متجر تجزئة ", " أخرى"],
+    typeOptions: [
+      { value: 1, label: "سوبرماركت" },
+      { value: 2, label: "صيدلية" },
+      { value: 3, label: "مطعم" },
+      { value: 4, label: "متجر تجزئة" },
+      { value: 5, label: "أخرى" },
+    ],
     locationLabel: " موقع المتجر ",
     submitLabel: " إنشاء الحساب ",
   },
@@ -109,12 +117,12 @@ const CONFIG = {
     nameLabel: " اسم الشركة ",
     typeLabel: " نوع النشاط التجاري ",
     typeOptions: [
-      1,
-      2,
-      3,
-      " متنوع ",
-      " مواد بناء ",
-      " إلكترونيات ",
+      { value: 1, label: "مواد غذائية" },
+      { value: 2, label: "منظفات" },
+      { value: 3, label: "أدوية" },
+      { value: 4, label: "متنوع" },
+      { value: 5, label: "مواد بناء" },
+      { value: 6, label: "إلكترونيات" },
     ],
     locationLabel: " موقع الشركة ",
     submitLabel: " إرسال طلب التسجيل ",
@@ -165,14 +173,17 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
   };
   // final submit
   const onFormSubmit = (data) => {
-    alert("FORM SUBMIT FIRED");
-    console.log("DATA:", data);
-
     if (!docFile) {
       setDocError(" يُرجى رفع وثيقة واحدة على الأقل ");
       return;
     }
-    onSubmit({ ...data, docType, docFile });
+
+    onSubmit({
+      ...data,
+      businessType: Number(data.businessType),
+      docType,
+      docFile,
+    });
   };
 
   const handleBack = () => {
@@ -253,9 +264,8 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
           {/* final submit btn */}
           <NavigationBtns
             onBack={() => setTab("info")}
-            nextLabel={config.submitLabel}
+            nextLabel={isLoading ? " ...جاري الارسال " : config.submitLabel}
             nextDisabled={isLoading}
-            nextType="submit"
           />
         </div>
       )}
