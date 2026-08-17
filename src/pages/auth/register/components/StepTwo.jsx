@@ -6,8 +6,8 @@ import NavigationBtns from "./NavigationBtns";
 const roles = [
   {
     id: "supplier",
-    label: "حساب مورد",
-    desc: "لتسجيل الشركات و الموردين و تقيم للمنتجات المتاجر",
+    label: " حساب مورد ",
+    desc: " لتسجيل الشركات و الموردين و تقيم للمنتجات المتاجر ",
     icon: <FaUserTie />,
     activeColor: "border-orange-400 bg-orange-50",
     iconBg: "bg-orange-400",
@@ -15,8 +15,8 @@ const roles = [
   },
   {
     id: "store",
-    label: "حساب متجر",
-    desc: "لتسجيل المتاجر و الشراء من منتجات الموردين",
+    label: " حساب متجر ",
+    desc: " لتسجيل المتاجر و الشراء من منتجات الموردين ",
     icon: <IoStorefrontSharp />,
     activeColor: "border-blue-300 bg-blue-50",
     iconBg: "bg-blue-500",
@@ -29,7 +29,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
 
   const handleNext = () => {
     if (!role) {
-      setError("يرجى اختيار نوع الحساب");
+      setError(" يرجى اختيار نوع الحساب ");
       return;
     }
 
@@ -71,11 +71,11 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
             {/* Radio */}
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
-              ${role === r.id ? r.iconBg : "border-gray-300"}
+              ${role === r.id ? r.activeColor : "border-gray-300"}
             `}
             >
               {role === r.id && (
-                <div className={`w-2.5 h-2.5 rounded-full ${r.iconBg}`} />
+                <div className={`w-3 h-3 rounded-full ${r.iconBg}`} />
               )}
             </div>
           </button>

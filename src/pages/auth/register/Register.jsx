@@ -78,26 +78,26 @@ export default function Register() {
     console.log("Full registration data:", fullData);
 
     setIsLoading(true);
+
     try {
       await register(fullData);
 
-      // successful notifucation
       await Swal.fire({
         icon: "success",
         title: "تم التسجيل بنجاح! 🎉",
         text: "تحقق من بريدك الإلكتروني لتفعيل حسابك",
         confirmButtonText: "الذهاب لتسجيل الدخول",
         confirmButtonColor: "#f97316",
-        background: "#ffffff",
-        color: "#1f2937",
-        iconColor: "#22c55e",
-        timer: 6000,
-        timerProgressBar: true,
-        toast: true,
       });
+
       navigate("/login");
+      
     } catch (error) {
-      console.error({ error });
+      Swal.fire({
+        icon: "error",
+        title: "فشل التسجيل",
+        text: error.response?.data?.message || "حدث خطأ غير متوقع",
+      });
     } finally {
       setIsLoading(false);
     }

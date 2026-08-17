@@ -87,13 +87,13 @@ export default function StepOne({ onNext, data, setData }) {
       {/* Phone + idNumber fields */}
       <div className="grid md:grid-cols-2 gap-3 mb-3">
         <Input
-          label=" رقم الهاتف "
+          label=" رقم الموبايل "
           placeholder="0591234567"
           type="tel"
           required
           icon={<FiPhone />}
           registration={register("phone", {
-            required: " رقم الهاتف مطلوب ",
+            required: " رقم الموبايل مطلوب ",
             pattern: { value: /^05\d{8}$/, message: " رقم الهاتف غير صحيح " },
           })}
           error={errors.phone?.message}
