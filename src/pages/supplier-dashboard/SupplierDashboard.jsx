@@ -269,7 +269,6 @@ export default function SupplierDashboard() {
 
           {/* CHART + SIDE STATS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-
             {/* SIDE STATS */}
             <div className="flex flex-col gap-4">
               {/* TOTAL SALES */}
@@ -299,9 +298,7 @@ export default function SupplierDashboard() {
                   <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                     <FiUsers size={18} />
                   </div>
-                  <p className="text-[#64748B] text-[13px]">
-                    معدل نمو الطلبات
-                  </p>
+                  <p className="text-[#64748B] text-[13px]">معدل نمو الطلبات</p>
                 </div>
                 <h3 className="text-[22px] font-bold text-[#0D2B5B] mb-3">
                   +12%
@@ -318,9 +315,7 @@ export default function SupplierDashboard() {
             <div className="lg:col-span-2 bg-white p-4 rounded-xl shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="font-bold text-[16px]">إحصائيات الطلبات</h2>
-                <span className="text-[#94A3B8] text-[13px]">
-                  (آخر 6 أشهر)
-                </span>
+                <span className="text-[#94A3B8] text-[13px]">(آخر 6 أشهر)</span>
               </div>
 
               <div className="flex" dir="ltr">
@@ -338,7 +333,10 @@ export default function SupplierDashboard() {
                   {/* horizontal gridlines */}
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                     {[0, 1, 2, 3, 4].map((line) => (
-                      <div key={line} className="border-t border-[#EEF1F6] w-full" />
+                      <div
+                        key={line}
+                        className="border-t border-[#EEF1F6] w-full"
+                      />
                     ))}
                   </div>
 
@@ -354,14 +352,17 @@ export default function SupplierDashboard() {
                           <div
                             className={`w-8 sm:w-10 rounded-t-lg ${
                               isMax
-                                ? "bg-gradient-to-t from-blue-700 to-blue-500"
+                                ? "bg-linear-to-t from-blue-700 to-blue-500"
                                 : v <= 45
-                                ? "bg-gradient-to-t from-blue-400 to-blue-300"
-                                : "bg-gradient-to-t from-blue-600 to-blue-400"
+                                  ? "bg-linear-to-t from-blue-400 to-blue-300"
+                                  : "bg-linear-to-t from-blue-600 to-blue-400"
                             }`}
                             style={{ height: `${v}%` }}
                           ></div>
-                          <p className="text-[12px] mt-3 text-[#334155]" dir="rtl">
+                          <p
+                            className="text-[12px] mt-3 text-[#334155]"
+                            dir="rtl"
+                          >
                             {months[i]}
                           </p>
                         </div>
@@ -371,8 +372,6 @@ export default function SupplierDashboard() {
                 </div>
               </div>
             </div>
-
-
           </div>
         </div>
       </div>

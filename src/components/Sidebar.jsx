@@ -5,7 +5,6 @@ import {
   FaBoxOpen,
   FaChartLine,
   FaCog,
-  FaPlus,
 } from "react-icons/fa";
 import { useState } from "react";
 

@@ -1,4 +1,4 @@
-import { FiSearch, FiBell, FiUser } from "react-icons/fi";
+import { FiSearch, FiBell } from "react-icons/fi";
 import { FaGlobe, FaRegMoon } from "react-icons/fa";
 import image from "../assets/images/supplierProfile.svg";
 
@@ -15,7 +15,7 @@ export default function Topbar() {
         <input
           type="text"
           placeholder="البحث عن طلبات، منتجات، أو عملاء..."
-          className="w-full bg-[#F3F4F5] rounded-xl py-3 pr-10 pl-4 focus:outline-none focus:ring-2 focus:ring-green-500 text-[14px]"
+          className="w-full bg-[#F3F4F5] text-[#6B7280] rounded-xl py-3 pr-10 pl-4 focus:outline-none focus:ring-2 focus:ring-[#062454]/50 text-[14px]"
         />
       </div>
 
