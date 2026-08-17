@@ -27,6 +27,7 @@ export default function LoginForm() {
       const token = res.data.token;
       loginUser(userData, token); //تخزين بيانات المستخدم عبر كونتيكست
       navigate("/"); // Redirect to the home page after successful login
+      localStorage.setItem("token", res.data.token);
     } catch (err) {
       console.error(err);
     }

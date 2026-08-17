@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FaUserTie } from "react-icons/fa";
 import { IoStorefrontSharp } from "react-icons/io5";
 import NavigationBtns from "./NavigationBtns";
@@ -24,6 +25,16 @@ const roles = [
 ];
 
 export default function StepTwo({ role, setRole, onNext, onBack }) {
+  const [error, setError] = useState("");
+
+  const handleNext = () => {
+    if (!role) {
+      setError("يرجى اختيار نوع الحساب");
+      return;
+    }
+
+    onNext(role);
+  };
   return (
     <div className="px-6 pb-6 my-2" dir="rtl">
       <p className="text-sm text-gray-700 font-medium md:text-center mb-4">
@@ -42,7 +53,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
           >
             {/* Icon */}
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shrink-0
               ${role === r.id ? r.iconBg : "bg-gray-200"}
             `}
             >
@@ -59,7 +70,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
 
             {/* Radio */}
             <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
               ${role === r.id ? r.iconBg : "border-gray-300"}
             `}
             >
@@ -70,6 +81,11 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
           </button>
         ))}
       </div>
+
+        {/* error message */}
+      {error && (
+        <p className="text-red-500 text-xs mb-2 text-center">{error}</p>
+      )}
 
       {/* Info box */}
       <div className="bg-[#1CA7F724] border border-blue-100 rounded-xl p-3 mb-2 shadow shadow-[#2EAFCD80]/50">
@@ -82,7 +98,7 @@ export default function StepTwo({ role, setRole, onNext, onBack }) {
         </p>
       </div>
 
-      <NavigationBtns onNext={() => onNext(role)} onBack={onBack} />
+      <NavigationBtns onNext={handleNext} onBack={onBack} />
     </div>
   );
 }

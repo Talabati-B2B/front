@@ -5,6 +5,8 @@ import { MdOutlineEmail } from "react-icons/md";
 import { FiPhone } from "react-icons/fi";
 import { RiLock2Fill } from "react-icons/ri";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
+
 export default function StepOne({ onNext, data, setData }) {
   const {
     register,
@@ -17,11 +19,13 @@ export default function StepOne({ onNext, data, setData }) {
     mode: "onBlur",
   });
 
-  const values = watch();
-
   useEffect(() => {
-    setData(values);
-  }, [values, setData]);
+  const subscription = watch((value) => {
+    setData(value);
+  });
+
+  return () => subscription.unsubscribe();
+}, [watch, setData]);
 
   const onSubmit = (data) => onNext(data);
 
@@ -124,6 +128,7 @@ export default function StepOne({ onNext, data, setData }) {
             },
           })}
           error={errors.password?.message}
+          extraLeftElement
         />
         {/* password confirmation */}
         <PasswordInput
@@ -147,12 +152,12 @@ export default function StepOne({ onNext, data, setData }) {
       {/* to login */}
       <p className="text-xs text-center text-gray-400 mt-3">
         لديك حساب بالفعل؟
-        <a
-          href="/login"
+        <Link
+          to="/login"
           className="text-orange-500 font-medium hover:underline"
         >
           تسجيل الدخول
-        </a>
+        </Link>
       </p>
     </form>
   );
