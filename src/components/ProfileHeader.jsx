@@ -12,21 +12,36 @@ function HeaderMeta({ icon: Icon, label, value }) {
   );
 }
 
-export default function ProfileHeader({ profile }) {
+export default function ProfileHeader({ profile, onImageChange }) {
   return (
     <section className="flex flex-wrap items-center gap-8 rounded-xl border border-line border-[#00000040] bg-white px-8 py-6 shadow-sm">
       <div className="relative shrink-0">
-        <div className="flex h-26 w-26 items-center justify-center rounded-full bg-[#063154CC] text-4xl font-bold text-white">
-          {profile.initial}
-        </div>
-        <button
-          type="button"
-          aria-label="تغيير الصورة الشخصية"
-          className="absolute -bottom-1 left-1 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-white text-body shadow-sm transition-colors hover:text-heading"
-        >
-          <Upload className="h-4 w-4" strokeWidth={2} />
-        </button>
-      </div>
+  <div className="flex h-26 w-26 items-center justify-center rounded-full bg-[#063154CC] text-4xl font-bold text-white">
+    {profile.initial}
+  </div>
+
+  <input
+    id="profile-image-input"
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        onImageChange?.(file);
+      }
+    }}
+  />
+
+  <button
+    type="button"
+    aria-label="تغيير الصورة الشخصية"
+    className="absolute -bottom-1 left-1 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-white text-body shadow-sm transition-colors hover:text-heading"
+    onClick={() => document.getElementById("profile-image-input")?.click()}
+  >
+    <Upload className="h-4 w-4" strokeWidth={2} />
+  </button>
+</div>
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-4">

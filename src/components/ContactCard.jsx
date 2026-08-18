@@ -12,16 +12,42 @@ function PalestineFlag() {
   )
 }
 
-export default function ContactCard({ profile }) {
+export default function ContactCard({ profile, onSubmit }) {
   const [phone, setPhone] = useState(profile.phone)
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp)
+  const [formStatus, setFormStatus] = useState(null)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
+
+    const normalizedPhone = phone.trim()
+    const normalizedWhatsapp = whatsapp.trim()
+    const phonePattern = /^\+?[0-9\s()-]{7,20}$/
+
+    if (!normalizedPhone || !normalizedWhatsapp) {
+      setFormStatus('Phone and WhatsApp are required.')
+      return
+    }
+
+    if (!phonePattern.test(normalizedPhone) || !phonePattern.test(normalizedWhatsapp)) {
+      setFormStatus('Enter valid contact numbers.')
+      return
+    }
+
+    try {
+      const result = await onSubmit?.({ phone: normalizedPhone, whatsapp: normalizedWhatsapp })
+      setFormStatus(
+        result?.ok
+          ? 'Saved locally; not synchronized with the server.'
+          : 'Contact information could not be saved.'
+      )
+    } catch {
+      setFormStatus('Contact information could not be saved.')
+    }
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-[#F10000BF] bg-white p-6 shadow-sm">
+    <section className="overflow-hidden rounded-[20px] border border-[#F10000BF] bg-white p-6 shadow-sm">
       <h2 className="mb-5 text-lg font-bold text-heading">معلومات الاتصال</h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -29,7 +55,8 @@ export default function ContactCard({ profile }) {
           <label htmlFor="phone" className="text-sm font-bold text-heading">
             رقم الهاتف <span className="text-accent text-[#F10000BF]">*</span>
           </label>
-          <div className="flex items-center gap-2 rounded-full border border-line-dark bg-white px-4 py-2.5 focus-within:border-accent">
+          <div className="flex items-center gap-2 rounded-full border border-line-dark bg-white px-4 py-3 focus-within:border-accent">
+            <Phone className="h-4 w-4 shrink-0 text-body" strokeWidth={2} />
             <input
               id="phone"
               type="tel"
@@ -37,9 +64,8 @@ export default function ContactCard({ profile }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="0590000000"
-              className="w-full bg-transparent text-end text-sm text-heading outline-none placeholder:text-line-dark"
+              className="w-full bg-transparent  text-end text-sm text-heading outline-none placeholder:text-line-dark"
             />
-            <Phone className="h-4 w-4 shrink-0 text-body" strokeWidth={2} />
           </div>
         </div>
 
@@ -55,7 +81,7 @@ export default function ContactCard({ profile }) {
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
               placeholder="590000000"
-              className="w-full bg-transparent px-4 py-2.5 text-end text-sm text-heading outline-none placeholder:text-line-dark"
+              className="w-full bg-transparent px-4 py-3 text-end text-sm text-heading outline-none placeholder:text-line-dark"
             />
             <span
               dir="ltr"
@@ -67,10 +93,12 @@ export default function ContactCard({ profile }) {
           </div>
         </div>
 
+        <p className="sr-only" role="status" aria-live="polite">{formStatus}</p>
+
         <div className="mt-2 flex justify-center">
           <button
             type="submit"
-            className="rounded-lg bg-[#F2762E] px-10 py-2.5 text-sm font-bold text-[#000000] transition-colors"
+            className="h-10 w-32 rounded-lg bg-[#F2762E] text-sm font-bold text-[#000000] transition-colors"
           >
             حفظ
           </button>

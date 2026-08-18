@@ -88,3 +88,54 @@ export function toViewModel({ data }) {
     ],
   }
 }
+
+// Local-only state boundaries for the pending-profile UI.
+// Replace these implementations with the confirmed Supplier API later.
+let localContact = { phone: '', whatsapp: '' }
+
+export function updateProfileContact(contact) {
+  localContact = { ...contact }
+  return Promise.resolve({
+    ok: true,
+    persisted: false,
+    source: 'local',
+    data: { ...localContact },
+  })
+}
+
+export function viewProfileDocument(document) {
+  return Promise.resolve({
+    ok: false,
+    code: 'API_NOT_CONNECTED',
+    action: 'view',
+    document,
+  })
+}
+
+export function downloadProfileDocument(document) {
+  return Promise.resolve({
+    ok: false,
+    code: 'API_NOT_CONNECTED',
+    action: 'download',
+    document,
+  })
+}
+
+export function uploadProfileDocument(document, file) {
+  return Promise.resolve({
+    ok: false,
+    code: 'API_NOT_CONNECTED',
+    action: 'upload',
+    document,
+    file,
+  })
+}
+
+export function uploadProfileImage(file) {
+  return Promise.resolve({
+    ok: false,
+    code: 'API_NOT_CONNECTED',
+    action: 'profile-image',
+    file,
+  })
+}

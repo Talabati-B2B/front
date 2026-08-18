@@ -12,9 +12,9 @@ function DashboardSidebar() {
   const [activeItem, setActiveItem] = useState("dashboard");
 
   return (
-    <div className="w-65 min-h-screen bg-[#062454] text-white px-5 pt-2 pb-8 flex flex-col shrink-0">
+    <div className="w-72 min-h-screen bg-[#062454] text-white px-5 pt-12 pb-8 flex flex-col shrink-0">
       {/* Logo */}
-      <div className="text-center mb-2 mx-auto -pt-3">
+      <div className="text-center mb-6 mx-auto -pt-3">
         <img className="w-40 h-41" src={logo} alt="logo" />
       </div>
 
