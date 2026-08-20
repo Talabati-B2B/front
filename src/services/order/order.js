@@ -30,12 +30,6 @@ export const orderStats = [
   },
 ]
 
-export const STOCK_STATUS = {
-  available: { label: 'متوفر', className: 'bg-green-50 text-success' },
-  low: { label: 'مخزون منخفض', className: 'bg-orange-50 text-accent' },
-  out: { label: 'نفذ المخزون', className: 'bg-red-50 text-red-500' },
-}
-
 export const orders = [
   {
     id: 1,
@@ -43,39 +37,34 @@ export const orders = [
     storeName: 'بيتي مول',
     date: '2026/07/24',
     total: 240,
-    status: 'available',
   },
   {
     id: 2,
-    orderNumber: 'TB-OR-001',
+    orderNumber: 'TB-OR-002',
     storeName: 'لاكاسا مول',
     date: '2026/07/20',
     total: 30,
-    status: 'low',
   },
   {
     id: 3,
-    orderNumber: 'TB-OR-001',
+    orderNumber: 'TB-OR-003',
     storeName: 'سوبر ماركت عجور',
     date: '2026/07/16',
     total: 40,
-    status: 'out',
   },
   {
     id: 4,
-    orderNumber: 'TB-OR-001',
+    orderNumber: 'TB-OR-004',
     storeName: 'مطعم بلدنا',
     date: '2026/07/14',
     total: 50,
-    status: 'available',
   },
   {
     id: 5,
-    orderNumber: 'TB-OR-001',
+    orderNumber: 'TB-OR-005',
     storeName: 'بازوكا كافي',
     date: '2026/07/10',
     total: 50,
-    status: 'available',
   },
 ]
 

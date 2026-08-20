@@ -2,6 +2,7 @@ import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
 import Pagination from "../../components/common/Pagination";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   FiUsers,
@@ -12,8 +13,53 @@ import {
 import { MdWarehouse, MdLocalShipping } from "react-icons/md";
 
 export default function SupplierDashboard() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
   const itemsPerPage = 4;
+
+  const handleViewAllNotifications = () => {
+    // NOTE: no "/notifications" route currently exists in App.jsx.
+    // Only updating local state until that route is added.
+    setShowAllNotifications(true);
+  };
+
+  const handleNotificationDetails = (notification) => {
+    // NOTE: no "/notifications/:id" route currently exists in App.jsx.
+    // Only updating local state until that route is added.
+    setSelectedNotification(notification);
+  };
+
+  const handleViewAllOrders = () => {
+    navigate("/orders");
+  };
+
+  const handleCloseNotificationModal = () => {
+    setSelectedNotification(null);
+    setShowAllNotifications(false);
+  };
+
+  const notifications = [
+    {
+      id: 1,
+      type: "low-stock",
+      title: "منتجات منخفضة المخزون",
+      message: "لديك 12 منتجاً منخفض المخزون",
+    },
+    {
+      id: 2,
+      type: "new-orders",
+      title: "طلبات جديدة",
+      message: "لديك 8 طلبات جديدة لم تتم معالجتها",
+    },
+    {
+      id: 3,
+      type: "price-update",
+      title: "تحديث الأسعار",
+      message: "تم تحديث أسعار بعض المنتجات",
+    },
+  ];
 
   const stats = [
     {
@@ -159,12 +205,13 @@ export default function SupplierDashboard() {
                     <span className="text-[#64748B] text-[12px] leading-4 font-semibold">
                       لديك 12 منتجاً منخفض المخزون
                     </span>
-                    <a
-                      href="عرض"
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationDetails(notifications[0])}
                       className="text-[#2563EB] block font-bold text-[12px] leading-4 mt-4"
                     >
                       عرض التفاصيل
-                    </a>
+                    </button>
                   </div>
                 </div>
 
@@ -177,12 +224,13 @@ export default function SupplierDashboard() {
                     <span className="text-[#64748B] text-[12px] leading-4 font-semibold">
                       لديك 8 طلبات جديدة لم تتم معالجتها
                     </span>
-                    <a
-                      href="عرض"
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationDetails(notifications[1])}
                       className="text-[#2563EB] block font-bold text-[12px] leading-4 mt-4"
                     >
                       عرض التفاصيل
-                    </a>
+                    </button>
                   </div>
                 </div>
 
@@ -195,17 +243,22 @@ export default function SupplierDashboard() {
                     <span className="text-[#64748B] text-[12px] leading-4 font-semibold">
                       تم تحديث أسعار بعض المنتجات
                     </span>
-                    <a
-                      href="عرض"
+                    <button
+                      type="button"
+                      onClick={() => handleNotificationDetails(notifications[2])}
                       className="text-[#2563EB] block font-bold text-[12px] leading-4 mt-4"
                     >
                       عرض التفاصيل
-                    </a>
+                    </button>
                   </div>
                 </div>
 
                 <div className="-mx-4 ">
-                  <button className="w-full bg-[#062454] text-white py-4 rounded-bl-lg rounded-br-lg text-[14px] leading-5">
+                  <button
+                    type="button"
+                    onClick={handleViewAllNotifications}
+                    className="w-full bg-[#062454] text-white py-4 rounded-bl-lg rounded-br-lg text-[14px] leading-5"
+                  >
                     عرض جميع التنبيهات
                   </button>
                 </div>
@@ -217,9 +270,13 @@ export default function SupplierDashboard() {
                 <h2 className="font-semibold text-[18px] leading-7">
                   آخر الطلبات المستلمة
                 </h2>
-                <p className="text-[#1455E5] font-normal text-[16px] leading-6">
+                <button
+                  type="button"
+                  onClick={handleViewAllOrders}
+                  className="text-[#1455E5] font-normal text-[16px] leading-6"
+                >
                   عرض الكل←
-                </p>
+                </button>
               </div>
 
               <table className="w-full text-sm" dir="rtl">
@@ -375,6 +432,65 @@ export default function SupplierDashboard() {
           </div>
         </div>
       </div>
+
+      {/* NOTIFICATION MODAL */}
+      {(selectedNotification || showAllNotifications) && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          dir="rtl"
+        >
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+            <button
+              type="button"
+              onClick={handleCloseNotificationModal}
+              aria-label="إغلاق"
+              className="absolute top-4 left-4 text-[#64748B] hover:text-[#062454] text-xl leading-none"
+            >
+              ×
+            </button>
+
+            {selectedNotification ? (
+              <>
+                <h3 className="font-bold text-[16px] leading-6 mb-3 pl-6">
+                  {selectedNotification.title}
+                </h3>
+                <p className="text-[#64748B] text-[14px] leading-6">
+                  {selectedNotification.message}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-bold text-[16px] leading-6 mb-4 pl-6">
+                  جميع التنبيهات
+                </h3>
+                <div className="space-y-3">
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="border-b border-[#E5E7EB] pb-3 last:border-b-0 last:pb-0"
+                    >
+                      <p className="font-semibold text-[14px] leading-5">
+                        {n.title}
+                      </p>
+                      <span className="text-[#64748B] text-[12px] leading-4">
+                        {n.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={handleCloseNotificationModal}
+              className="w-full mt-6 bg-[#062454] text-white py-3 rounded-lg text-[14px] leading-5"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

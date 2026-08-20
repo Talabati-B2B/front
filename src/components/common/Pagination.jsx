@@ -1,16 +1,12 @@
-import { useState } from "react";
-
 export default function Pagination({
+  currentPage = 1,
   totalItems,
   itemsPerPage = 5,
   onPageChange,
 }) {
-  const [currentPage, setCurrentPage] = useState(1);
-
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const goToPage = (page) => {
-    setCurrentPage(page);
     onPageChange(page);
   };
 

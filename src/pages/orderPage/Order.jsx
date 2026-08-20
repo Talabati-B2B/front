@@ -7,7 +7,7 @@ import TopStores from "../../components/TopStores";
 
 export default function OrdersPage() {
   return (
-    <div className="min-h-screen bg-page flex">
+    <div className="min-h-screen bg-page flex" dir="rtl">
       <Sidebar />
 
       <div className="flex-1 flex flex-col">
