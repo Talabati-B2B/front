@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiCheck,
   FiCheckCircle,
@@ -311,6 +312,7 @@ function initials(name) {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState(initialUsers);
   const [activeTab, setActiveTab] = useState("مورد");
   const [searchTerm, setSearchTerm] = useState("");
@@ -664,10 +666,20 @@ export default function AdminUsers() {
                         {formatDate(user.joinDate)}
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="flex items-center justify-center gap-1.5" dir="rtl">
+                        <div
+                          className="flex items-center justify-center gap-1.5"
+                          dir="rtl"
+                        >
                           <button
                             type="button"
-                            onClick={() => setSelectedAccount(user)}
+                            onClick={() =>
+                              navigate(`/admin/users/${user.id}`, {
+                                state: {
+                                  user,
+                                  activeTab,
+                                },
+                              })
+                            }
                             className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D6DADF] bg-white text-[#68707A] transition-colors hover:bg-[#F4F6F9]"
                             title={`عرض ${user.name}`}
                             aria-label={`عرض ${user.name}`}
@@ -676,7 +688,9 @@ export default function AdminUsers() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => updateAccountStatus(user.id, "مقبول")}
+                            onClick={() =>
+                              updateAccountStatus(user.id, "مقبول")
+                            }
                             disabled={user.status === "مقبول"}
                             className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D6DADF] bg-white text-[#15803D] transition-colors hover:bg-[#EAF8EF] disabled:cursor-not-allowed disabled:opacity-35"
                             title={`قبول ${user.name}`}
@@ -734,8 +748,8 @@ export default function AdminUsers() {
           <div className="flex flex-col gap-3 border-t border-[#E6E8EB] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] text-[#52657F]">
               عرض {filteredUsers.length === 0 ? 0 : startIndex + 1}-
-              {Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} من {filteredUsers.length}{" "}
-              {activeTab === "مورد" ? "مورد" : "متجر"}
+              {Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} من{" "}
+              {filteredUsers.length} {activeTab === "مورد" ? "مورد" : "متجر"}
             </p>
 
             <div className="flex items-center gap-1.5" dir="ltr">
@@ -909,8 +923,8 @@ export default function AdminUsers() {
               تأكيد رفض الحساب
             </h2>
             <p className="mt-2 text-center text-[12px] leading-6 text-[#747780]">
-              هل تريد رفض حساب <strong>{rejectingAccount.name}</strong>؟ سيتم تحديث
-              الحالة محليًا إلى "مرفوض".
+              هل تريد رفض حساب <strong>{rejectingAccount.name}</strong>؟ سيتم
+              تحديث الحالة محليًا إلى "مرفوض".
             </p>
 
             <div className="mt-5 flex items-center justify-center gap-2">

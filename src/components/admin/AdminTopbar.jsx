@@ -1,4 +1,5 @@
-import { FiBell, FiSearch, FiUser } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiBell, FiSearch, FiUser, FiGlobe } from "react-icons/fi";
 import { FaRegMoon } from "react-icons/fa";
 
 export default function AdminTopbar({
@@ -11,9 +12,11 @@ export default function AdminTopbar({
   avatarSrc,
   notificationCount,
   showNotificationDot = true,
-  onNotificationClick,
   onThemeClick,
+  onLanguageClick,
 }) {
+  const navigate = useNavigate();
+
   const hasNotificationCount =
     typeof notificationCount === "number" && notificationCount > 0;
 
@@ -22,12 +25,13 @@ export default function AdminTopbar({
       dir="rtl"
       className="flex h-20 w-full items-center justify-between gap-6 border-b border-[#E5E7EB] bg-[#F7F8FA] px-6 shadow-sm"
     >
+      {/* Title + Search */}
       <div className="flex min-w-0 flex-1 items-center gap-6">
         <h1 className="shrink-0 text-[19px] font-bold text-[#00163B]">
           {title}
         </h1>
 
-        <div className="relative w-full max-w-[520px]">
+        <div className="relative w-full max-w-130">
           <FiSearch
             aria-hidden="true"
             className="absolute right-4 top-1/2 -translate-y-1/2 text-[#777C86]"
@@ -45,22 +49,35 @@ export default function AdminTopbar({
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex shrink-0 items-center gap-4" dir="ltr">
         <div className="flex items-center gap-2 border-r border-[#D9DCE2] pr-4">
+          {/* Language */}
+          <button
+            type="button"
+            onClick={onLanguageClick}
+            aria-label="تغيير اللغة"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#44474F] transition hover:bg-[#ECEEF2]"
+          >
+            <FiGlobe size={19} />
+          </button>
+
+          {/* Theme */}
           <button
             type="button"
             onClick={onThemeClick}
             aria-label="تغيير المظهر"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#44474F] transition hover:bg-[#ECEEF2] focus:outline-none focus:ring-2 focus:ring-[#062454]/20"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#44474F] transition-colors hover:bg-[#ECEEF2]"
           >
             <FaRegMoon size={18} />
           </button>
 
+          {/* Notifications */}
           <button
             type="button"
-            onClick={onNotificationClick}
+            onClick={() => navigate("/admin/notifications")}
             aria-label="الإشعارات"
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#44474F] transition hover:bg-[#ECEEF2] focus:outline-none focus:ring-2 focus:ring-[#062454]/20"
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#44474F] transition hover:bg-[#ECEEF2]"
           >
             <FiBell size={19} />
 
@@ -74,11 +91,18 @@ export default function AdminTopbar({
           </button>
         </div>
 
-        <div className="flex items-center gap-3" dir="rtl">
+        {/* Admin User */}
+        <button
+          type="button"
+          onClick={() => navigate("/admin/profile")}
+          className="flex items-center gap-3 rounded-lg px-2 py-1.5 text-right transition-colors hover:bg-[#ECEEF2]"
+          dir="rtl"
+        >
           <div className="text-right leading-tight">
             <p className="max-w-40 truncate text-[14px] font-semibold text-[#00163B]">
               {adminName}
             </p>
+
             <p className="mt-1 text-[12px] text-[#7A7F89]">{adminRole}</p>
           </div>
 
@@ -93,7 +117,7 @@ export default function AdminTopbar({
               <FiUser aria-hidden="true" size={20} className="text-[#40577B]" />
             )}
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );
