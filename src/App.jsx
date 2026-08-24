@@ -1,5 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 
+// Landing
+import LandingPage from "./pages/landing-page/landingPage";
+
+// Auth
+import Login from "./pages/auth/login/Login";
+import Register from "./pages/auth/register/Register";
+import ForgotPassword from "./pages/auth/forgot-password/ForgotPassword";
+import ResetPassword from "./pages/auth/reset-password/ResetPassword";
+
 // Supplier
 import SupplierDashboard from "./pages/supplier-dashboard/SupplierDashboard";
 import "./pages/supplier-dashboard/DashboardHome";
@@ -42,6 +51,20 @@ import AdminProfile from "./pages/admin-profile/AdminProfile";
 export default function App() {
   return (
     <Routes>
+      {/* ================= Landing ================= */}
+
+      <Route path="/landing" element={<LandingPage />} />
+
+      {/* ================= Auth ================= */}
+
+      <Route path="/login" element={<Login />} />
+
+      <Route path="/register" element={<Register />} />
+
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      <Route path="/reset-password" element={<ResetPassword />} />
+
       {/* ================= Supplier ================= */}
 
       <Route path="/" element={<SupplierDashboard />} />
