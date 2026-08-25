@@ -53,6 +53,8 @@ export default function App() {
     <Routes>
       {/* ================= Landing ================= */}
 
+      <Route path="/" element={<LandingPage />} />
+
       <Route path="/landing" element={<LandingPage />} />
 
       {/* ================= Auth ================= */}
@@ -67,7 +69,7 @@ export default function App() {
 
       {/* ================= Supplier ================= */}
 
-      <Route path="/" element={<SupplierDashboard />} />
+      <Route path="/supplier-dashboard" element={<SupplierDashboard />} />
 
       <Route
         path="/supplierpendingdashboard"
