@@ -1,15 +1,19 @@
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+
 import { Button, Input, PasswordInput } from "../../../components/common";
 import Logo2 from "../../../assets/images/logo2.svg";
 import { FaRegUser } from "react-icons/fa";
 import { RiLock2Fill } from "react-icons/ri";
-import { login } from "../../../services/authService";
+
+import { mockLogin } from "../../../services/auth.mock";
 import { useAuth } from "../../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
+  const [loginError, setLoginError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -20,15 +24,24 @@ export default function LoginForm() {
 
   const { loginUser } = useAuth();
   const navigate = useNavigate();
+
   const onSubmit = async (data) => {
+    setLoginError("");
+
     try {
-      const res = await login(data);
-      const userData = res.data.user;
-      const token = res.data.token;
-      loginUser(userData, token); //تخزين بيانات المستخدم عبر كونتيكست
-      navigate("/"); // Redirect to the home page after successful login
+      const res = await mockLogin(data);
+
+      loginUser(res.user, res.token);
+
+      if (res.user.role === "supplier") {
+        navigate("/supplier-dashboard");
+      } else if (res.user.role === "store") {
+        navigate("/store");
+      } else if (res.user.role === "admin") {
+        navigate("/admin");
+      }
     } catch (err) {
-      console.error(err);
+      setLoginError(err.message || "حدث خطأ أثناء تسجيل الدخول");
     }
   };
   return (
@@ -45,8 +58,16 @@ export default function LoginForm() {
 
           <h1 className="text-xl font-semibold text-[#1a3a5c]">
             شريكك الالكتروني في التوريد والتوصيل
+            شريكك الالكتروني في التوريد والتوصيل
           </h1>
         </div>
+
+        {/* Login Error */}
+        {loginError && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 text-center">
+            {loginError}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -87,8 +108,8 @@ export default function LoginForm() {
             >
               نسيت كلمة المرور؟
             </Link>
+
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              {/* remember me */}
               <input
                 type="checkbox"
                 {...register("remember")}
@@ -97,6 +118,7 @@ export default function LoginForm() {
               تذكرني
             </label>
           </div>
+
           {/* Login button */}
           <Button type="submit" fullWidth disabled={isSubmitting}>
             {isSubmitting ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
@@ -106,7 +128,10 @@ export default function LoginForm() {
         {/* Register link */}
         <div className="mt-2 text-center text-sm text-gray-500">
           ليس لديك حساب؟
-          <Link to="/register" className="text-orange-500 mr-1 hover:underline">
+          <Link
+            to="/register"
+            className="text-orange-500 mr-1 hover:underline"
+          >
             سجل الان كمتجر أو مورد
           </Link>
         </div>

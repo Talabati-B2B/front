@@ -8,7 +8,7 @@ import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
 import StepTwo from "./components/StepTwo";
 import StepThree from "./components/StepThree";
-import { register } from "../../../services/authService";
+import { mockRegister } from "../../../services/auth.mock";
 
 // حركة في الستيب بروجرس
 const stepVariants = {
@@ -79,8 +79,9 @@ export default function Register() {
 
     setIsLoading(true);
 
+
     try {
-      await register(fullData);
+     await mockRegister(fullData);
 
       await Swal.fire({
         icon: "success",
@@ -90,9 +91,15 @@ export default function Register() {
         confirmButtonColor: "#f97316",
       });
 
+
       navigate("/login");
-      
+
     } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "فشل التسجيل",
+        text: error.response?.data?.message || "حدث خطأ غير متوقع",
+      });
       Swal.fire({
         icon: "error",
         title: "فشل التسجيل",

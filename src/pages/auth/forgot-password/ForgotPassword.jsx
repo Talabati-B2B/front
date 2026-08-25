@@ -5,7 +5,7 @@ import { Input, Button } from "../../../components/common";
 import ForgetImg from "../../../assets/images/forget-password.png";
 import { FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { forgotPassword } from "../../../services/authService";
+import { mockForgotPassword } from "../../../services/auth.mock";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data) => {
     try {
-      await forgotPassword(data.email);
+      await mockForgotPassword(data.email);
       navigate("/reset-password");
     } catch (err) {
       console.error(err);

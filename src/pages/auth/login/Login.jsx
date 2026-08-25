@@ -1,6 +1,6 @@
 import LoginSide from "./LoginSide";
 import LoginForm from "./LoginForm";
-import LoginBG from "../../../assets/images/LoginBG.svg";
+import LoginBG from "../../../assets/images/loginBG.png";
 
 export default function Login() {
   return (
@@ -12,7 +12,7 @@ export default function Login() {
       <div>
         <LoginForm />
       </div>
-      
+
       {/* Right side */}
       <LoginSide />
     </div>

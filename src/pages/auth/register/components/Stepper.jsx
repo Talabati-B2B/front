@@ -2,14 +2,14 @@ import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa";
 
 const steps = [
-  { number: 3, label: " بيانات النشاط " },
-  { number: 2, label: " نوع الحساب " },
-  { number: 1, label: " البيانات الأساسية " },
+  { number: 1, label: "البيانات الأساسية" },
+  { number: 2, label: "نوع الحساب" },
+  { number: 3, label: "بيانات النشاط" },
 ];
 
 export default function Stepper({ currentStep }) {
   return (
-    <div className="flex justify-center px-6 py-5">
+    <div dir="rtl" className="flex justify-center px-6 py-5">
       {steps.map((step, idx) => {
         const isDone = step.number < currentStep;
         const isActive = step.number === currentStep;
@@ -19,16 +19,18 @@ export default function Stepper({ currentStep }) {
             key={step.number}
             className="flex-1 flex flex-col items-center relative"
           >
-            {/* الخط */}
+            {/* الخط بين الخطوات */}
             {idx !== steps.length - 1 && (
-              <div className="absolute top-5 right-1/2 translate-x-full w-full h-0.5 bg-gray-200">
+              <div className="absolute top-5 right-1/2 w-full h-0.5 bg-gray-200">
                 <motion.div
                   initial={false}
                   animate={{
-                     scaleX: step.number < currentStep ? 1 : 0 ,
+                    scaleX: isDone ? 1 : 0,
                   }}
                   transition={{ duration: 0.3 }}
-                  style={{ originX: 1 }}
+                  style={{
+                    originX: 1,
+                  }}
                   className="h-full bg-[#1a3a5c]"
                 />
               </div>

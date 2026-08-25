@@ -5,7 +5,7 @@ import { PasswordInput, Button } from "../../../components/common";
 import ResetImg from "../../../assets/images/forget-password.png";
 import { RiLock2Fill } from "react-icons/ri";
 import Swal from "sweetalert2";
-import { resetPassword } from "../../../services/authService";
+import { mockResetPassword } from "../../../services/auth.mock";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function ResetPassword() {
 
   const onSubmit = async (data) => {
     try {
-      await resetPassword(data);
+      await  mockResetPassword(data);
 
       await Swal.fire({
         icon: "success",
@@ -59,7 +59,7 @@ export default function ResetPassword() {
 
         {/* form */}
         <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-5">
-          
+
           {/* password */}
           <PasswordInput
             label="كلمة المرور الجديدة"
