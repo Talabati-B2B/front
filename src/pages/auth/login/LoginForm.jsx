@@ -44,7 +44,6 @@ export default function LoginForm() {
       setLoginError(err.message || "حدث خطأ أثناء تسجيل الدخول");
     }
   };
-
   return (
     <div className="h-screen flex items-center justify-center overflow-hidden px-6 py-5 md:px-12 bg-white">
       <motion.div
@@ -58,6 +57,7 @@ export default function LoginForm() {
           <img src={Logo2} alt="Talabati" className="" />
 
           <h1 className="text-xl font-semibold text-[#1a3a5c]">
+            شريكك الالكتروني في التوريد والتوصيل
             شريكك الالكتروني في التوريد والتوصيل
           </h1>
         </div>

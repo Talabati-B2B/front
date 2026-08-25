@@ -8,7 +8,7 @@ export default function Select({
   registration = {},
 }) {
   return (
-    <div className="flex flex-col gap-1.5" dir="rtl">
+    <div className="relative flex flex-col gap-1.5" dir="rtl">
       {label && (
         <label className="text-xs text-gray-500 font-medium">
           {label} {required && <span className="text-red-500">*</span>}

@@ -79,6 +79,7 @@ export default function Register() {
 
     setIsLoading(true);
 
+
     try {
      await mockRegister(fullData);
 
@@ -90,9 +91,15 @@ export default function Register() {
         confirmButtonColor: "#f97316",
       });
 
+
       navigate("/login");
 
     } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "فشل التسجيل",
+        text: error.response?.data?.message || "حدث خطأ غير متوقع",
+      });
       Swal.fire({
         icon: "error",
         title: "فشل التسجيل",
