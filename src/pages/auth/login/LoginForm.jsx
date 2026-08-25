@@ -34,7 +34,7 @@ export default function LoginForm() {
       loginUser(res.user, res.token);
 
       if (res.user.role === "supplier") {
-        navigate("/");
+        navigate("/supplier-dashboard");
       } else if (res.user.role === "store") {
         navigate("/store");
       } else if (res.user.role === "admin") {
