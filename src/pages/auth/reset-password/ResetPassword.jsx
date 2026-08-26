@@ -1,14 +1,20 @@
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../../../components/layout/AuthLayout";
 import { PasswordInput, Button } from "../../../components/common";
 import ResetImg from "../../../assets/images/forget-password.png";
 import { RiLock2Fill } from "react-icons/ri";
 import Swal from "sweetalert2";
-import { mockResetPassword } from "../../../services/auth.mock";
+import { resetPassword } from "../../../services/authService";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+
+  // رابط إعادة التعيين يصل بالشكل /reset-password?token=...&email=...
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const email = searchParams.get("email");
 
   const {
     register,
@@ -19,26 +25,54 @@ export default function ResetPassword() {
 
   const onSubmit = async (data) => {
     try {
-      await  mockResetPassword(data);
+      await resetPassword({ ...data, token, email });
 
       await Swal.fire({
         icon: "success",
         title: "تم التحديث بنجاح 🎉",
         text: "تم تغيير كلمة المرور بنجاح",
         confirmButtonText: "تسجيل الدخول",
-        toast: true,
+        confirmButtonColor: "#f97316",
       });
 
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "فشل التحديث",
-        text: "حاول مرة أخرى بكلمة مرور أقوى",
+        text: getApiErrorMessage(err),
       });
-      console.error(err)
     }
   };
+
+  // بدون التوكن والبريد لا يمكن إتمام الطلب، فنوقف المستخدم مبكراً
+  if (!token || !email) {
+    return (
+      <AuthLayout>
+        <div
+          className="px-8 pt-3 pb-6 flex flex-col items-center justify-center text-center"
+          dir="rtl"
+        >
+          <img src={ResetImg} className="w-64 h-64 object-contain mb-3" />
+
+          <h2 className="text-xl font-bold text-[#1a3a5c] mb-2">
+            الرابط غير صالح أو منتهي
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            افتح رابط إعادة التعيين من رسالة البريد الإلكتروني، أو اطلب رابطاً
+            جديداً
+          </p>
+
+          <Link
+            to="/forgot-password"
+            className="text-orange-500 font-medium hover:underline"
+          >
+            طلب رابط جديد
+          </Link>
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>
@@ -67,8 +101,8 @@ export default function ResetPassword() {
             registration={register("password", {
               required: "كلمة المرور مطلوبة",
               minLength: {
-                value: 6,
-                message: "يجب أن تكون 6 أحرف على الأقل",
+                value: 8,
+                message: "يجب أن تكون 8 أحرف على الأقل",
               },
             })}
             error={errors.password?.message}

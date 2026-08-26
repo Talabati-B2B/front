@@ -1,5 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 // Landing
 import LandingPage from "./pages/landing-page/landingPage";
 
@@ -129,7 +131,14 @@ export default function App() {
 
       {/* ================= Admin ================= */}
 
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<AdminDashboard />} />
 
         <Route path="orders" element={<AdminOrders />} />

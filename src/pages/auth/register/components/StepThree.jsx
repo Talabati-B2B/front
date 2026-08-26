@@ -4,6 +4,11 @@ import { Input, Select, DropzoneUpload } from "../../../../components/common";
 import { FiMapPin } from "react-icons/fi";
 import NavigationBtns from "./NavigationBtns";
 import { useEffect } from "react";
+import {
+  FALLBACK_STORE_TYPES,
+  FALLBACK_SUPPLIER_CATEGORIES,
+  fetchBusinessTypes,
+} from "../../../../services/lookups";
 
 // import { data } from "react-router-dom";
 
@@ -39,9 +44,16 @@ function TabSwitcher({ activeTab, onChange }) {
 
 // Doc type selector component
 function DocTypeSelector({ selected, onChange }) {
+  // الـ API لا يقبل سوى commercial_register؛ لا يوجد حقل لإثبات الملكية بعد،
+  // فنعطّل الخيار بدل إيهام المستخدم بأن ملفه سيُرسل تحت نوع مختلف.
   const types = [
     { id: "commercial", label: " سجل تجاري ", desc: " السجل التجاري للنشاط " },
-    { id: "ownership", label: " إثبات ملكية ", desc: " عقد وكالة أو تفويض " },
+    {
+      id: "ownership",
+      label: " إثبات ملكية ",
+      desc: " غير متاح حالياً ",
+      disabled: true,
+    },
   ];
 
   return (
@@ -59,9 +71,11 @@ function DocTypeSelector({ selected, onChange }) {
             <button
               key={type.id}
               type="button"
+              disabled={type.disabled}
               onClick={() => onChange(type.id)}
               className={`
               relative flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-right transition
+              ${type.disabled ? "opacity-50 cursor-not-allowed" : ""}
               ${
                 isSelected
                   ? "border-orange-400 bg-orange-50"
@@ -97,18 +111,14 @@ function DocTypeSelector({ selected, onChange }) {
 }
 
 // shared business form
+// TODO: استبدال القوائم الثابتة بجلب من /api/store-types و endpoint التصنيفات
+// حالما يصيرا متاحين بدون توكن — حالياً /api/store-types يتطلب مصادقة.
 const CONFIG = {
   store: {
     namePlaceholder: " سوبرماركت الأمل ",
     nameLabel: " اسم المتجر ",
     typeLabel: " نوع المتجر ",
-    typeOptions: [
-      { value: 1, label: "سوبرماركت" },
-      { value: 2, label: "صيدلية" },
-      { value: 3, label: "مطعم" },
-      { value: 4, label: "متجر تجزئة" },
-      { value: 5, label: "أخرى" },
-    ],
+    typeOptions: FALLBACK_STORE_TYPES,
     locationLabel: " موقع المتجر ",
     submitLabel: " إنشاء الحساب ",
   },
@@ -116,14 +126,7 @@ const CONFIG = {
     namePlaceholder: " شركة النور للتجارة ",
     nameLabel: " اسم الشركة ",
     typeLabel: " نوع النشاط التجاري ",
-    typeOptions: [
-      { value: 1, label: "مواد غذائية" },
-      { value: 2, label: "منظفات" },
-      { value: 3, label: "أدوية" },
-      { value: 4, label: "متنوع" },
-      { value: 5, label: "مواد بناء" },
-      { value: 6, label: "إلكترونيات" },
-    ],
+    typeOptions: FALLBACK_SUPPLIER_CATEGORIES,
     locationLabel: " موقع الشركة ",
     submitLabel: " إرسال طلب التسجيل ",
   },
@@ -136,6 +139,20 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
   const [docType, setDocType] = useState(data.docType);
   const [docFile, setDocFile] = useState(data.docFile);
   const [docError, setDocError] = useState("");
+  const [typeOptions, setTypeOptions] = useState(config.typeOptions);
+
+  // تُجلب القائمة عند الوصول للخطوة الثالثة؛ وإن تعذّر ذلك نبقى على النسخة الاحتياطية
+  useEffect(() => {
+    let active = true;
+
+    fetchBusinessTypes(role).then((options) => {
+      if (active) setTypeOptions(options);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [role]);
 
   const {
     register,
@@ -219,7 +236,7 @@ function BusinessForm({ role, onBack, onSubmit, isLoading, data, setData }) {
             <Select
               label={config.typeLabel}
               required
-              options={config.typeOptions}
+              options={typeOptions}
               registration={register("businessType", {
                 required: `${config.typeLabel} مطلوب`,
               })}

@@ -1,7 +1,13 @@
 import axios from "axios";
 
+// الباك إند يرجّع Access-Control-Allow-Origin بعنوانه هو بدل عنوان الطالب،
+// فالنداء المباشر من المتصفح يسقط بـ CORS. في التطوير نترك baseURL فارغاً
+// لتمرّ الطلبات عبر بروكسي Vite (انظر vite.config.js) فتصبح من نفس الأصل.
+// يُلغى هذا الالتفاف حين تُضبط إعدادات CORS على السيرفر.
+const baseURL = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL;
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL,
   headers: {
     Accept: "application/json",
   },

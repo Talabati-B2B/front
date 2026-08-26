@@ -27,6 +27,7 @@ import {
   savePendingNotesMock,
   storePendingProfile,
 } from "../../services/store/storePending.mock";
+import PendingStatusBar from "../../components/PendingStatusBar";
 
 import {
   ACCOUNT_STATUS,
@@ -694,6 +695,7 @@ export default function StorePending() {
       dir="rtl"
       className="fixed inset-0 flex overflow-hidden bg-[#F5F6F8]"
     >
+      <PendingStatusBar />
       <PendingSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

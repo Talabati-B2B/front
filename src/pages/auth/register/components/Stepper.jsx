@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { FaCheck } from "react-icons/fa";
 
 const steps = [

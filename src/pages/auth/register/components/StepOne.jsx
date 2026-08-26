@@ -123,8 +123,8 @@ export default function StepOne({ onNext, data, setData }) {
           registration={register("password", {
             required: " كلمة المرور مطلوبة ",
             minLength: {
-              value: 6,
-              message: " يجب أن تكون كلمة المرور أكثر من 6 أحرف ",
+              value: 8,
+              message: " يجب أن تكون كلمة المرور 8 أحرف على الأقل ",
             },
           })}
           error={errors.password?.message}

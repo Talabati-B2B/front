@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -8,7 +8,13 @@ import Logo2 from "../../../assets/images/logo2.svg";
 import { FaRegUser } from "react-icons/fa";
 import { RiLock2Fill } from "react-icons/ri";
 
-import { mockLogin } from "../../../services/auth.mock";
+import { login } from "../../../services/authService";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import {
+  extractToken,
+  normalizeUser,
+  resolveHomeRoute,
+} from "../../../utils/authNormalize";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function LoginForm() {
@@ -29,19 +35,25 @@ export default function LoginForm() {
     setLoginError("");
 
     try {
-      const res = await mockLogin(data);
+      // نفس الطلب لكل الأدوار — الرول الراجع من السيرفر هو اللي بيحدد الوجهة
+      const res = await login({
+        email: data.email,
+        password: data.password,
+      });
 
-      loginUser(res.user, res.token);
+      const token = extractToken(res);
+      const user = normalizeUser(res.user);
 
-      if (res.user.role === "supplier") {
-        navigate("/supplier-dashboard");
-      } else if (res.user.role === "store") {
-        navigate("/store");
-      } else if (res.user.role === "admin") {
-        navigate("/admin");
+      if (!token || !user?.role) {
+        setLoginError("تعذّر إتمام تسجيل الدخول، حاول مرة أخرى");
+        return;
       }
+
+      loginUser(user, token);
+
+      navigate(resolveHomeRoute(user.role, user.status), { replace: true });
     } catch (err) {
-      setLoginError(err.message || "حدث خطأ أثناء تسجيل الدخول");
+      setLoginError(getApiErrorMessage(err, "حدث خطأ أثناء تسجيل الدخول"));
     }
   };
   return (
@@ -72,7 +84,7 @@ export default function LoginForm() {
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <Input
-            label="البريد الإلكتروني أو رقم الموبايل "
+            label="البريد الإلكتروني"
             placeholder="example@gmail.com"
             icon={<FaRegUser />}
             registration={register("email", {
@@ -92,8 +104,8 @@ export default function LoginForm() {
             registration={register("password", {
               required: " كلمة المرور مطلوبة ",
               minLength: {
-                value: 6,
-                message: " يجب أن تكون كلمة المرور أكثر من 6 أحرف ",
+                value: 8,
+                message: " يجب أن تكون كلمة المرور 8 أحرف على الأقل ",
               },
             })}
             error={errors.password?.message}

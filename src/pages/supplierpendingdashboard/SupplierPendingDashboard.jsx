@@ -20,6 +20,7 @@ import {
   getAccountStatusForUser,
   resubmitApprovalAccountByEmail,
 } from '../../services/accountApproval.mock'
+import PendingStatusBar from '../../components/PendingStatusBar'
 
 function SupplierPendingDashboard() {
   const { user } = useAuth()
@@ -56,10 +57,22 @@ function SupplierPendingDashboard() {
   const handleProfileImageChange = (file) => uploadProfileImage(file)
 
   if (profileError) {
-    return <div className="sr-only" role="alert">تعذر تحميل بيانات الملف الشخصي.</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F6F8]" dir="rtl">
+        <PendingStatusBar />
+        <p className="text-gray-500">تعذر تحميل بيانات الملف الشخصي.</p>
+      </div>
+    )
   }
 
-  if (!profile) return null
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F6F8]" dir="rtl">
+        <PendingStatusBar />
+        <p className="text-gray-400">جارٍ التحميل...</p>
+      </div>
+    )
+  }
 
   if (approvalStatus === ACCOUNT_STATUS.APPROVED) {
     return <Navigate to="/supplier-dashboard" replace />
@@ -86,6 +99,7 @@ function SupplierPendingDashboard() {
 
   return (
     <div className="min-h-screen flex bg-[#F5F6F8]" dir="rtl">
+      <PendingStatusBar />
       <Sidebar />
 
       <main className="flex flex-1 flex-col gap-4 pb-8 pl-14 pr-3 pt-16">

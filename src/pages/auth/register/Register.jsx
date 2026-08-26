@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import Swal from "sweetalert2";
 import logo from "../../../assets/images/logo.svg";
 import AuthLayout from "../../../components/layout/AuthLayout";
@@ -8,7 +8,14 @@ import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
 import StepTwo from "./components/StepTwo";
 import StepThree from "./components/StepThree";
-import { mockRegister } from "../../../services/auth.mock";
+import { register as registerRequest } from "../../../services/authService";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import {
+  extractToken,
+  normalizeUser,
+  resolveHomeRoute,
+} from "../../../utils/authNormalize";
+import { useAuth } from "../../../context/AuthContext";
 
 // حركة في الستيب بروجرس
 const stepVariants = {
@@ -30,6 +37,7 @@ const stepVariants = {
 
 export default function Register() {
   const navigate = useNavigate();
+  const { loginUser } = useAuth();
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [role, setRole] = useState("");
@@ -69,41 +77,55 @@ export default function Register() {
   const handleStepTwoNext = (selectedRole) => {
     if (!selectedRole) return;
 
+    // معرّفات الأنواع تخص كل دور على حدة، فترحيلها بين متجر ومورّد يرسل قيمة خاطئة
+    if (selectedRole !== role) {
+      setStepThreeData({
+        businessName: "",
+        businessType: "",
+        location: "",
+        tab: "info",
+        docType: "commercial",
+        docFile: null,
+      });
+    }
+
     setRole(selectedRole);
     setStep(3);
   };
 
   const handleFinalSubmit = async (stepThreeData) => {
     const fullData = { ...stepOneData, role, ...stepThreeData };
-    console.log("Full registration data:", fullData);
 
     setIsLoading(true);
 
-
     try {
-     await mockRegister(fullData);
+      // registerRequest يبني الـ FormData ويطابق أسماء حقول الـ API حسب الدور
+      // ويرجّع جسم الرد { access_token, user, ... }
+      const res = await registerRequest(fullData);
 
       await Swal.fire({
         icon: "success",
-        title: "تم التسجيل بنجاح! 🎉",
-        text: "تم إرسال حسابك للمراجعة، ويمكنك تسجيل الدخول لمتابعة حالة الطلب",
-        confirmButtonText: "الذهاب لتسجيل الدخول",
+        title: "تم استلام طلبك بنجاح! 🎉",
+        text: "حسابك الآن قيد مراجعة الإدارة، وسيتم إعلامك فور الموافقة عليه",
+        confirmButtonText: "متابعة",
         confirmButtonColor: "#f97316",
       });
 
+      // السيرفر يرجّع توكناً مباشرة عند التسجيل — نسجّل الدخول ونوجّه لشاشة المراجعة
+      const token = extractToken(res);
+      const user = normalizeUser(res.user);
 
-      navigate("/login");
-
+      if (token && user?.role) {
+        loginUser(user, token);
+        navigate(resolveHomeRoute(user.role, user.status), { replace: true });
+      } else {
+        navigate("/login");
+      }
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "فشل التسجيل",
-        text: error.response?.data?.message || "حدث خطأ غير متوقع",
-      });
-      Swal.fire({
-        icon: "error",
-        title: "فشل التسجيل",
-        text: error.response?.data?.message || "حدث خطأ غير متوقع",
+        text: getApiErrorMessage(error),
       });
     } finally {
       setIsLoading(false);

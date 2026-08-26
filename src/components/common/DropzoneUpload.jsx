@@ -1,11 +1,29 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { FiUploadCloud, FiCheck } from "react-icons/fi";
 
+const MAX_SIZE = 5 * 1024 * 1024;
+
+const REJECTION_MESSAGES = {
+  "file-too-large": "حجم الملف أكبر من 5MB",
+  "file-invalid-type": "نوع الملف غير مدعوم، المسموح PNG أو JPG أو PDF",
+  "too-many-files": "يمكن رفع ملف واحد فقط",
+};
+
 export default function DropzoneUpload({ file, onChange, error }) {
+  // الملفات المرفوضة كانت تُهمل بصمت، فيظن المستخدم أن الرفع نجح
+  const [rejectionError, setRejectionError] = useState("");
+
   const onDrop = useCallback(
-    (accepted) => {
-      if (accepted.length > 0) onChange(accepted[0]);
+    (accepted, rejected) => {
+      if (accepted.length > 0) {
+        setRejectionError("");
+        onChange(accepted[0]);
+        return;
+      }
+
+      const code = rejected?.[0]?.errors?.[0]?.code;
+      setRejectionError(REJECTION_MESSAGES[code] ?? "تعذّر رفع هذا الملف");
     },
     [onChange],
   );
@@ -14,8 +32,10 @@ export default function DropzoneUpload({ file, onChange, error }) {
     onDrop,
     accept: { "image/*": [], "application/pdf": [] },
     maxFiles: 1,
-    maxSize: 5 * 1024 * 1024,
+    maxSize: MAX_SIZE,
   });
+
+  const visibleError = rejectionError || error;
 
   return (
     <div dir="rtl" className="flex flex-col gap-1.5">
@@ -56,7 +76,9 @@ export default function DropzoneUpload({ file, onChange, error }) {
           </div>
         )}
       </div>
-      {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+      {visibleError && (
+        <p className="text-xs text-red-500 font-medium">{visibleError}</p>
+      )}
     </div>
   );
 }

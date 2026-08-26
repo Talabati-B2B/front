@@ -7,7 +7,7 @@ export const login = async (credentials) => {
 };
 
 // register
-export const register = (data) => {
+export const register = async (data) => {
   const formData = new FormData();
 
   // step one data
@@ -41,7 +41,9 @@ export const register = (data) => {
     }
   }
 
-  return api.post("/api/register", formData);
+  // نرجّع جسم الرد (access_token + user) ليدخل الفرونت المستخدم مباشرة لشاشة المراجعة
+  const res = await api.post("/api/register", formData);
+  return res.data;
 };
 
 // forget password
@@ -67,6 +69,6 @@ export const logout = async () => {
 
 // get current user
 export const getMe = async () => {
-  const res = await api.get("/me");
+  const res = await api.get("/api/user");
   return res.data;
 };

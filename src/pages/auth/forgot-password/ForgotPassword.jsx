@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
 import AuthLayout from "../../../components/layout/AuthLayout";
 import { Input, Button } from "../../../components/common";
 import ForgetImg from "../../../assets/images/forget-password.png";
 import { FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import { mockForgotPassword } from "../../../services/auth.mock";
+import { forgotPassword } from "../../../services/authService";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 export default function ForgotPassword() {
-  const navigate = useNavigate();
+  const [sentTo, setSentTo] = useState("");
+  const [requestError, setRequestError] = useState("");
 
   const {
     register,
@@ -17,11 +19,15 @@ export default function ForgotPassword() {
   } = useForm();
 
   const onSubmit = async (data) => {
+    setRequestError("");
+
     try {
-      await mockForgotPassword(data.email);
-      navigate("/reset-password");
+      await forgotPassword(data.email);
+
+      // الرابط يصل على البريد ويحمل التوكن، فلا نوجّه لصفحة إعادة التعيين مباشرة
+      setSentTo(data.email);
     } catch (err) {
-      console.error(err);
+      setRequestError(getApiErrorMessage(err));
     }
   };
 
@@ -42,6 +48,20 @@ export default function ForgotPassword() {
             أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين
           </p>
         </div>
+
+        {/* success message */}
+        {sentTo && (
+          <div className="mb-4 w-full rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 text-center">
+            تم إرسال رابط إعادة التعيين إلى {sentTo}، تفقّد بريدك الإلكتروني
+          </div>
+        )}
+
+        {/* error message */}
+        {requestError && (
+          <div className="mb-4 w-full rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 text-center">
+            {requestError}
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit(onSubmit)}
