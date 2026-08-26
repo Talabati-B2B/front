@@ -161,7 +161,12 @@ export default function Products() {
   );
 
   useEffect(() => {
-    const syncProducts = () => setLocalProducts(getSupplierProducts(user?.id));
+    const syncProducts = () => {
+      setLocalProducts(getSupplierProducts(user?.id));
+    };
+
+    syncProducts();
+
     return subscribeStoreProducts(syncProducts);
   }, [user?.id]);
 
