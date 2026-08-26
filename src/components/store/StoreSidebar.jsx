@@ -55,6 +55,7 @@ export default function StoreSidebar({
   storeName = "المتجر",
   storeRole = "متجر",
   avatarSrc,
+  cartCount = 0,
 }) {
   return (
     <aside
@@ -86,7 +87,16 @@ export default function StoreSidebar({
                 }
               >
                 <Icon className="shrink-0" size={18} aria-hidden="true" />
-                <span className="whitespace-nowrap">{label}</span>
+
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="whitespace-nowrap">{label}</span>
+
+                  {label === "السلة" && cartCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F47721] px-1.5 text-[10px] font-bold leading-none text-white">
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
               </NavLink>
             </li>
           ))}

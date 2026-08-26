@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { useLocation, useOutletContext } from "react-router-dom";
 import {
   Banknote,
@@ -6,7 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Minus,
   PackageCheck,
+  Plus,
   Search,
   ShoppingCart,
   SlidersHorizontal,
@@ -53,10 +56,10 @@ const SUMMARY_STYLES = {
   },
 };
 
-const STOCK_QUANTITY_STYLES = {
-  متوفر: "text-[#16834B]",
-  "مخزون منخفض": "text-[#E7651A]",
-  "نفذ المخزون": "text-[#D83232]",
+const STOCK_BADGE_STYLES = {
+  متوفر: "bg-[#E9FBF0] text-[#16834B]",
+  "مخزون منخفض": "bg-[#FFF1E5] text-[#E7651A]",
+  "نفذ المخزون": "bg-[#FDEAEA] text-[#D83232]",
 };
 
 const STOCK_DOT_STYLES = {
@@ -64,6 +67,13 @@ const STOCK_DOT_STYLES = {
   "مخزون منخفض": "bg-[#F97316]",
   "نفذ المخزون": "bg-[#EF4444]",
 };
+
+const SORT_OPTIONS = [
+  "السعر: من الأقل للأعلى",
+  "السعر: من الأعلى للأقل",
+  "الاسم: أ-ي",
+  "الاسم: ي-أ",
+];
 
 function SummaryCard({ item }) {
   const Icon = SUMMARY_ICONS[item.id] ?? Store;
@@ -119,6 +129,66 @@ function FilterSelect({ label, value, options, onChange }) {
   );
 }
 
+function IconTooltipButton({
+  tooltip,
+  onClick,
+  disabled,
+  ariaLabel,
+  className,
+  children,
+}) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        className={className}
+      >
+        {children}
+      </button>
+
+      <span className="pointer-events-none absolute -top-9 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-[#062454] px-2 py-1 text-[10px] font-medium text-white group-hover:block">
+        {tooltip}
+      </span>
+    </span>
+  );
+}
+
+function TableQuantityControl({ product, quantity, onChange }) {
+  const atMaximum = quantity >= product.availableQuantity;
+
+  return (
+    <div
+      className="inline-flex h-8 items-center rounded-md border border-[#D8DDE6] bg-white"
+      aria-label={`تعديل كمية ${product.name}`}
+    >
+      <button
+        type="button"
+        onClick={() => onChange(-1)}
+        aria-label={`تقليل كمية ${product.name}`}
+        className="flex h-full w-7 items-center justify-center text-[#596579] transition-colors hover:bg-[#F5F6F8]"
+      >
+        <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+
+      <span className="flex h-full min-w-6 items-center justify-center border-x border-[#E3E6EB] px-1.5 text-[11px] font-bold text-[#20365A]">
+        {quantity}
+      </span>
+
+      <button
+        type="button"
+        disabled={atMaximum}
+        onClick={() => onChange(1)}
+        aria-label={`زيادة كمية ${product.name}`}
+        className="flex h-full w-7 items-center justify-center text-[#596579] transition-colors hover:bg-[#F5F6F8] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+    </div>
+  );
+}
 
 function ProductDetailsModal({ product, onClose }) {
   if (!product) {
@@ -146,7 +216,10 @@ function ProductDetailsModal({ product, onClose }) {
               className="h-20 w-20 shrink-0 rounded-xl border border-[#E0E4EA] object-cover"
             />
             <div className="min-w-0">
-              <h2 id="product-details-title" className="text-[17px] font-bold text-[#20365A]">
+              <h2
+                id="product-details-title"
+                className="text-[17px] font-bold text-[#20365A]"
+              >
                 {product.name}
               </h2>
               <p className="mt-1 text-[10px] text-[#7A818D]" dir="ltr">
@@ -168,15 +241,21 @@ function ProductDetailsModal({ product, onClose }) {
         <dl className="mt-6 grid grid-cols-1 gap-3 rounded-xl border border-[#E5E8EC] bg-[#FAFBFC] p-4 sm:grid-cols-2">
           <div>
             <dt className="text-[9px] text-[#8A9099]">المورد</dt>
-            <dd className="mt-1 text-[12px] font-semibold text-[#40516C]">{product.supplier}</dd>
+            <dd className="mt-1 text-[12px] font-semibold text-[#40516C]">
+              {product.supplier}
+            </dd>
           </div>
           <div>
             <dt className="text-[9px] text-[#8A9099]">الفئة</dt>
-            <dd className="mt-1 text-[12px] font-semibold text-[#40516C]">{product.category}</dd>
+            <dd className="mt-1 text-[12px] font-semibold text-[#40516C]">
+              {product.category}
+            </dd>
           </div>
           <div>
             <dt className="text-[9px] text-[#8A9099]">السعر</dt>
-            <dd className="mt-1 text-[13px] font-bold text-[#062454]">₪ {product.price.toFixed(2)}</dd>
+            <dd className="mt-1 text-[13px] font-bold text-[#062454]">
+              ₪ {product.price.toFixed(2)}
+            </dd>
           </div>
           <div>
             <dt className="text-[9px] text-[#8A9099]">الكمية المتاحة</dt>
@@ -198,7 +277,13 @@ function ProductDetailsModal({ product, onClose }) {
   );
 }
 
-function PageButton({ children, active = false, disabled = false, onClick, label }) {
+function PageButton({
+  children,
+  active = false,
+  disabled = false,
+  onClick,
+  label,
+}) {
   return (
     <button
       type="button"
@@ -224,12 +309,28 @@ function ProductsContent({ initialSearchTerm = "" }) {
     products = [],
     cartItems = [],
     addToCart,
+    updateCartItemQuantity,
+    removeCartItem,
   } = useOutletContext() ?? {};
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockStatusFilter, setStockStatusFilter] = useState("");
+  const [sortOption, setSortOption] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const showAlert = (message) => {
+    Swal.fire({
+      toast: true,
+      position: "top-start",
+      icon: "success",
+      title: message,
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true,
+      direction: "rtl",
+    });
+  };
 
   const filteredProducts = useMemo(() => {
     const localSearch = searchTerm.trim().toLowerCase();
@@ -264,28 +365,60 @@ function ProductsContent({ initialSearchTerm = "" }) {
         matchesStockStatus
       );
     });
-  }, [products, searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
+  }, [
+    products,
+    searchTerm,
+    topbarSearchValue,
+    categoryFilter,
+    stockStatusFilter,
+  ]);
+
+  const sortedProducts = useMemo(() => {
+    if (!sortOption) {
+      return filteredProducts;
+    }
+
+    const productsCopy = [...filteredProducts];
+
+    switch (sortOption) {
+      case "السعر: من الأقل للأعلى":
+        return productsCopy.sort((a, b) => a.price - b.price);
+      case "السعر: من الأعلى للأقل":
+        return productsCopy.sort((a, b) => b.price - a.price);
+      case "الاسم: أ-ي":
+        return productsCopy.sort((a, b) => a.name.localeCompare(b.name, "ar"));
+      case "الاسم: ي-أ":
+        return productsCopy.sort((a, b) => b.name.localeCompare(a.name, "ar"));
+      default:
+        return productsCopy;
+    }
+  }, [filteredProducts, sortOption]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+    Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE),
   );
 
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * PRODUCTS_PER_PAGE;
-  const paginatedProducts = filteredProducts.slice(
+  const paginatedProducts = sortedProducts.slice(
     startIndex,
     startIndex + PRODUCTS_PER_PAGE,
   );
 
-  const firstVisibleItem = filteredProducts.length === 0 ? 0 : startIndex + 1;
+  const firstVisibleItem = sortedProducts.length === 0 ? 0 : startIndex + 1;
   const lastVisibleItem =
-    filteredProducts.length === 0
+    sortedProducts.length === 0
       ? 0
-      : Math.min(startIndex + PRODUCTS_PER_PAGE, filteredProducts.length);
+      : Math.min(startIndex + PRODUCTS_PER_PAGE, sortedProducts.length);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
     setCurrentPage(1);
   };
 
@@ -299,275 +432,348 @@ function ProductsContent({ initialSearchTerm = "" }) {
     setCurrentPage(1);
   };
 
+  const handleSortChange = (value) => {
+    setSortOption(value);
+    setCurrentPage(1);
+  };
+
   const handleAddToCart = (product) => {
     if (product.stockStatus === "نفذ المخزون") {
       return;
     }
 
     addToCart?.(product);
+    showAlert(`تمت إضافة ${product.name} إلى السلة`);
+  };
+
+  const handleQuantityChange = (product, currentQuantity, delta) => {
+    const nextQuantity = currentQuantity + delta;
+
+    if (nextQuantity <= 0) {
+      removeCartItem?.(product.id);
+      showAlert(`تم إزالة ${product.name} من السلة`);
+      return;
+    }
+
+    updateCartItemQuantity?.(product.id, nextQuantity);
+    showAlert(
+      delta > 0
+        ? `تم زيادة كمية ${product.name}`
+        : `تم تقليل كمية ${product.name}`,
+    );
   };
 
   return (
     <>
-    <section dir="rtl" className="min-h-full bg-white px-4 py-5 sm:px-6 lg:px-7">
-      <div className="mx-auto w-full max-w-[1320px]">
-        <div className="mb-5">
-          <h1 className="text-[22px] font-bold text-[#062454] sm:text-[25px]">
-            المنتجات
-          </h1>
-          <p className="mt-1.5 text-[12px] leading-6 text-[#6D7480]">
-            تصفح المنتجات المتاحة من الموردين ومتابعة الأسعار والكميات المتوفرة.
-          </p>
-        </div>
-
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {storeProductSummary.map((item) => (
-            <SummaryCard key={item.id} item={item} />
-          ))}
-        </div>
-
-        <section className="min-w-0 overflow-hidden rounded-xl border border-[#E1E4E9] bg-white shadow-[0_1px_5px_rgba(15,23,42,0.04)]">
-          <div className="flex flex-col gap-3 border-b border-[#E6E8EC] px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-[430px]">
-              <Search
-                aria-hidden="true"
-                className="absolute right-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-[#7A818D]"
-                strokeWidth={2}
-              />
-
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={handleSearchChange}
-                placeholder="ابحث باسم المنتج أو SKU..."
-                aria-label="البحث في المنتجات"
-                className="h-11 w-full rounded-lg border border-[#CDD2DA] bg-white pr-11 pl-10 text-right text-[12px] text-[#374151] outline-none transition-colors placeholder:text-[#9AA0AA] focus:border-[#40577B] focus:ring-2 focus:ring-[#40577B]/10"
-              />
-
-              <SlidersHorizontal
-                aria-hidden="true"
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A818D]"
-                strokeWidth={2}
-              />
-            </div>
-
-            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-              <FilterSelect
-                label="كل الفئات"
-                value={categoryFilter}
-                options={storeProductCategories}
-                onChange={handleCategoryChange}
-              />
-
-              <FilterSelect
-                label="حالة المخزون"
-                value={stockStatusFilter}
-                options={storeStockStatuses}
-                onChange={handleStockStatusChange}
-              />
-            </div>
-          </div>
-
-          <div className="max-w-full overflow-x-auto">
-            <table className="w-full min-w-[900px] table-fixed text-right">
-              <colgroup>
-                <col className="w-[29%]" />
-                <col className="w-[14%]" />
-                <col className="w-[20%]" />
-                <col className="w-[15%]" />
-                <col className="w-[12%]" />
-                <col className="w-[10%]" />
-              </colgroup>
-
-              <thead>
-                <tr className="bg-[#F2F3F5] text-[#6D7480]">
-                  <th className="px-5 py-3 text-right text-[11px] font-semibold">
-                    المنتج
-                  </th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold">
-                    الفئة
-                  </th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold">
-                    المورد
-                  </th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold">
-                    الكمية
-                  </th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold">
-                    سعر الوحدة
-                  </th>
-                  <th className="px-3 py-3 text-center text-[11px] font-semibold">
-                    الإجراءات
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedProducts.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-14 text-center text-[12px] text-[#7A818D]"
-                    >
-                      لا توجد منتجات مطابقة للبحث أو خيارات التصفية.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedProducts.map((product) => {
-                    const addedToCart = cartItems.some(
-                      (item) => item.id === product.id,
-                    );
-                    const outOfStock = product.stockStatus === "نفذ المخزون";
-
-                    return (
-                      <tr
-                        key={product.id}
-                        className="border-t border-[#E7E9ED] text-[12px] transition-colors hover:bg-[#FAFBFC]"
-                      >
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="h-11 w-11 shrink-0 rounded-lg border border-[#DDE1E7] object-cover"
-                            />
-
-                            <div className="min-w-0">
-                              <p className="text-[12px] font-bold leading-5 text-[#20365A]">
-                                {product.name}
-                              </p>
-                              <p
-                                className="mt-0.5 text-[9px] text-[#7A818D]"
-                                dir="ltr"
-                              >
-                                SKU: {product.sku}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3.5 text-center text-[11px] font-medium text-[#30343A]">
-                          {product.category}
-                        </td>
-
-                        <td className="px-4 py-3.5 text-center text-[11px] font-medium text-[#20365A]">
-                          {product.supplier}
-                        </td>
-
-                        <td className="px-4 py-3.5 text-center">
-                          <span
-                            className={`inline-flex items-center justify-center gap-2 text-[11px] font-semibold ${STOCK_QUANTITY_STYLES[product.stockStatus]}`}
-                          >
-                            <span
-                              className={`h-2 w-2 shrink-0 rounded-full ${STOCK_DOT_STYLES[product.stockStatus]}`}
-                            />
-                            {outOfStock
-                              ? "نفذت الكمية"
-                              : `${product.availableQuantity} ${product.stockUnit}`}
-                          </span>
-                        </td>
-
-                        <td className="whitespace-nowrap px-4 py-3.5 text-center text-[13px] font-bold text-[#111827]">
-                          ₪ {product.price.toFixed(2)}
-                        </td>
-
-                        <td className="px-3 py-3.5">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProduct(product)}
-                              title="عرض تفاصيل المنتج"
-                              aria-label={`عرض تفاصيل ${product.name}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-[#062454] transition-colors hover:bg-[#EEF3FA]"
-                            >
-                              <Eye className="h-4.5 w-4.5" strokeWidth={2} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleAddToCart(product)}
-                              disabled={outOfStock || addedToCart}
-                              title={
-                                outOfStock
-                                  ? "المنتج غير متوفر"
-                                  : addedToCart
-                                    ? "تمت إضافة المنتج للسلة"
-                                    : "إضافة للسلة"
-                              }
-                              aria-label={`إضافة ${product.name} للسلة`}
-                              className={[
-                                "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-                                addedToCart
-                                  ? "cursor-default bg-[#E8F8EE] text-[#16834B]"
-                                  : outOfStock
-                                    ? "cursor-not-allowed text-[#B7BBC2] opacity-55"
-                                    : "text-[#B64B00] hover:bg-[#FFF3EA]",
-                              ].join(" ")}
-                            >
-                              <ShoppingCart className="h-4.5 w-4.5" strokeWidth={2} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-[#D7DBE2] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[11px] text-[#7A818D]">
-              عرض {firstVisibleItem}-{lastVisibleItem} من أصل {filteredProducts.length}{" "}
-              منتج
+      <section
+        dir="rtl"
+        className="min-h-full bg-white px-4 py-5 sm:px-6 lg:px-7"
+      >
+        <div className="mx-auto w-full max-w-[1320px]">
+          <div className="mb-5">
+            <h1 className="text-[22px] font-bold text-[#062454] sm:text-[25px]">
+              المنتجات
+            </h1>
+            <p className="mt-1.5 text-[12px] leading-6 text-[#6D7480]">
+              تصفح المنتجات المتاحة من الموردين ومتابعة الأسعار والكميات
+              المتوفرة.
             </p>
-
-            <div className="flex items-center gap-2" dir="ltr">
-              <PageButton
-                label="الصفحة السابقة"
-                disabled={safeCurrentPage === 1}
-                onClick={() =>
-                  setCurrentPage((page) => Math.max(1, page - 1))
-                }
-              >
-                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-              </PageButton>
-
-              {Array.from({ length: totalPages }, (_, index) => {
-                const pageNumber = index + 1;
-
-                return (
-                  <PageButton
-                    key={pageNumber}
-                    label={`الصفحة ${pageNumber}`}
-                    active={safeCurrentPage === pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </PageButton>
-                );
-              })}
-
-              <PageButton
-                label="الصفحة التالية"
-                disabled={safeCurrentPage === totalPages}
-                onClick={() =>
-                  setCurrentPage((page) => Math.min(totalPages, page + 1))
-                }
-              >
-                <ChevronRight className="h-4 w-4" strokeWidth={2} />
-              </PageButton>
-            </div>
           </div>
-        </section>
-      </div>
-    </section>
 
-    <ProductDetailsModal
-      product={selectedProduct}
-      onClose={() => setSelectedProduct(null)}
-    />
-  </>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {storeProductSummary.map((item) => (
+              <SummaryCard key={item.id} item={item} />
+            ))}
+          </div>
+
+          <section className="min-w-0 overflow-hidden rounded-xl border border-[#E1E4E9] bg-white shadow-[0_1px_5px_rgba(15,23,42,0.04)]">
+            <div className="flex flex-col gap-3 border-b border-[#E6E8EC] px-4 py-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="w-full lg:max-w-[430px]">
+                <div className="relative w-full">
+                  <Search
+                    aria-hidden="true"
+                    className="absolute right-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-[#7A818D]"
+                    strokeWidth={2}
+                  />
+
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    placeholder="ابحث بالاسم، SKU، المورد أو التصنيف..."
+                    aria-label="البحث في المنتجات"
+                    className="h-11 w-full rounded-lg border border-[#CDD2DA] bg-white pr-11 pl-10 text-right text-[12px] text-[#374151] outline-none transition-colors placeholder:text-[#9AA0AA] focus:border-[#40577B] focus:ring-2 focus:ring-[#40577B]/10"
+                  />
+
+                  {searchTerm ? (
+                    <button
+                      type="button"
+                      onClick={handleClearSearch}
+                      aria-label="مسح البحث"
+                      className="absolute left-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#7A818D] transition-colors hover:bg-[#F3F5F8] hover:text-[#20365A]"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={2} />
+                    </button>
+                  ) : (
+                    <SlidersHorizontal
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A818D]"
+                      strokeWidth={2}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex w-full flex-nowrap gap-3 sm:flex-row lg:w-auto">
+                <FilterSelect
+                  label="كل الفئات"
+                  value={categoryFilter}
+                  options={storeProductCategories}
+                  onChange={handleCategoryChange}
+                />
+
+                <FilterSelect
+                  label="حالة المخزون"
+                  value={stockStatusFilter}
+                  options={storeStockStatuses}
+                  onChange={handleStockStatusChange}
+                />
+
+                <FilterSelect
+                  label="ترتيب حسب"
+                  value={sortOption}
+                  options={SORT_OPTIONS}
+                  onChange={handleSortChange}
+                />
+              </div>
+            </div>
+
+            <div className="max-w-full overflow-x-auto">
+              <table className="w-full min-w-[900px] table-fixed text-right">
+                <colgroup>
+                  <col className="w-[29%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[10%]" />
+                </colgroup>
+
+                <thead>
+                  <tr className="bg-[#F2F3F5] text-[#6D7480]">
+                    <th className="px-5 py-3 text-right text-[11px] font-semibold">
+                      المنتج
+                    </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold">
+                      التصنيف
+                    </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold">
+                      المورد
+                    </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold">
+                      المخزون
+                    </th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold">
+                      السعر
+                    </th>
+                    <th className="px-3 py-3 text-center text-[11px] font-semibold">
+                      الإجراءات
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {paginatedProducts.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-6 py-14 text-center text-[12px] text-[#7A818D]"
+                      >
+                        لا توجد منتجات مطابقة للبحث أو خيارات التصفية.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedProducts.map((product) => {
+                      const cartItem = cartItems.find(
+                        (item) => item.id === product.id,
+                      );
+                      const outOfStock = product.stockStatus === "نفذ المخزون";
+
+                      return (
+                        <tr
+                          key={product.id}
+                          className={[
+                            "border-t border-[#E7E9ED] text-[12px] transition-colors hover:bg-[#FAFBFC]",
+                            outOfStock ? "opacity-70" : "",
+                          ].join(" ")}
+                        >
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className={[
+                                  "h-11 w-11 shrink-0 rounded-lg border border-[#DDE1E7] object-cover",
+                                  outOfStock ? "grayscale-[35%]" : "",
+                                ].join(" ")}
+                              />
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="truncate text-[12px] font-bold leading-5 text-[#20365A]">
+                                    {product.name}
+                                  </p>
+                                  {outOfStock && (
+                                    <span className="shrink-0 rounded-full bg-[#FDEAEA] px-2 py-0.5 text-[8px] font-semibold text-[#D83232]">
+                                      غير متوفر
+                                    </span>
+                                  )}
+                                </div>
+                                <p
+                                  className="mt-0.5 text-[9px] text-[#7A818D]"
+                                  dir="ltr"
+                                >
+                                  SKU: {product.sku}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 text-center text-[11px] font-medium text-[#30343A]">
+                            {product.category}
+                          </td>
+
+                          <td className="px-4 py-3.5 text-center text-[11px] font-medium text-[#20365A]">
+                            {product.supplier}
+                          </td>
+
+                          <td className="px-4 py-3.5 text-center">
+                            <span
+                              className={`inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${STOCK_BADGE_STYLES[product.stockStatus]}`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${STOCK_DOT_STYLES[product.stockStatus]}`}
+                              />
+                              {outOfStock
+                                ? "نفذت الكمية"
+                                : `${product.availableQuantity} ${product.stockUnit}`}
+                            </span>
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3.5 text-center text-[13px] font-bold text-[#111827]">
+                            ₪ {product.price.toFixed(2)}
+                          </td>
+
+                          <td className="px-3 py-3.5">
+                            <div className="flex items-center justify-center gap-2">
+                              <IconTooltipButton
+                                tooltip="عرض التفاصيل"
+                                onClick={() => setSelectedProduct(product)}
+                                ariaLabel={`عرض تفاصيل ${product.name}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-[#062454] transition-colors hover:bg-[#EEF3FA]"
+                              >
+                                <Eye className="h-4.5 w-4.5" strokeWidth={2} />
+                              </IconTooltipButton>
+
+                              {outOfStock ? (
+                                <IconTooltipButton
+                                  tooltip="المنتج غير متوفر"
+                                  disabled
+                                  ariaLabel={`${product.name} غير متوفر`}
+                                  className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md text-[#B7BBC2] opacity-55"
+                                >
+                                  <ShoppingCart
+                                    className="h-4.5 w-4.5"
+                                    strokeWidth={2}
+                                  />
+                                </IconTooltipButton>
+                              ) : cartItem ? (
+                                <TableQuantityControl
+                                  product={product}
+                                  quantity={cartItem.quantity}
+                                  onChange={(delta) =>
+                                    handleQuantityChange(
+                                      product,
+                                      cartItem.quantity,
+                                      delta,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <IconTooltipButton
+                                  tooltip="إضافة للسلة"
+                                  onClick={() => handleAddToCart(product)}
+                                  ariaLabel={`إضافة ${product.name} للسلة`}
+                                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#B64B00] transition-colors hover:bg-[#FFF3EA]"
+                                >
+                                  <ShoppingCart
+                                    className="h-4.5 w-4.5"
+                                    strokeWidth={2}
+                                  />
+                                </IconTooltipButton>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-[#D7DBE2] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] text-[#7A818D]">
+                عرض {firstVisibleItem}-{lastVisibleItem} من أصل{" "}
+                {sortedProducts.length} منتج
+              </p>
+
+              <div className="flex items-center gap-2" dir="ltr">
+                <PageButton
+                  label="الصفحة السابقة"
+                  disabled={safeCurrentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                >
+                  <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                </PageButton>
+
+                {Array.from({ length: totalPages }, (_, index) => {
+                  const pageNumber = index + 1;
+
+                  return (
+                    <PageButton
+                      key={pageNumber}
+                      label={`الصفحة ${pageNumber}`}
+                      active={safeCurrentPage === pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </PageButton>
+                  );
+                })}
+
+                <PageButton
+                  label="الصفحة التالية"
+                  disabled={safeCurrentPage === totalPages}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                  }
+                >
+                  <ChevronRight className="h-4 w-4" strokeWidth={2} />
+                </PageButton>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <ProductDetailsModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
+    </>
   );
 }
 
