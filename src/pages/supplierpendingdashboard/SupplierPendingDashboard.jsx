@@ -15,20 +15,16 @@ import ProfileHeader from '../../components/ProfileHeader'
 import DocumentsCard from '../../components/DocumentsCard'
 import ContactCard from '../../components/ContactCard'
 import NotesCard from '../../components/NotesCard'
-import {
-  ACCOUNT_STATUS,
-  getAccountStatusForUser,
-  resubmitApprovalAccountByEmail,
-} from '../../services/accountApproval.mock'
+import { resubmitApprovalAccountByEmail } from '../../services/accountApproval.mock'
 import PendingStatusBar from '../../components/PendingStatusBar'
 
 function SupplierPendingDashboard() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [profile, setProfile] = useState(null)
   const [profileError, setProfileError] = useState(null)
-  const [approvalStatus, setApprovalStatus] = useState(
-    () => getAccountStatusForUser(user) || ACCOUNT_STATUS.PENDING,
-  )
+
+  // الحالة من السيرفر (البوابة حدّثتها قبل عرض هذه الشاشة)
+  const approvalStatus = user?.status
 
   useEffect(() => {
     let active = true
@@ -74,27 +70,18 @@ function SupplierPendingDashboard() {
     )
   }
 
-  if (approvalStatus === ACCOUNT_STATUS.APPROVED) {
+  if (approvalStatus === 'approved') {
     return <Navigate to="/supplier-dashboard" replace />
   }
 
-  const statusLabel =
-    approvalStatus === ACCOUNT_STATUS.NEEDS_CHANGES
-      ? 'تحتاج تعديلات'
-      : 'قيد المراجعة'
-
-  const displayProfile = {
-    ...profile,
-    fullName:
-      `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || profile.fullName,
-    initial: user?.firstName?.charAt(0) || profile.initial,
-    email: user?.email || profile.email,
-    statusLabel,
-  }
+  // بيانات المورد كلها من /api/user/profile الآن، فلا حاجة لتجاوزها محلياً
+  const displayProfile = profile
 
   const handleResubmit = () => {
-    const updated = resubmitApprovalAccountByEmail(displayProfile.email)
-    if (updated) setApprovalStatus(updated.status)
+    // نموذج تعديل البيانات لم يُبنَ بعد؛ مسار التحديث على السيرفر يشترط رفع
+    // المستندات. إلى حين ذلك نكتفي بإعادة قراءة الحالة من السيرفر.
+    resubmitApprovalAccountByEmail(profile.email)
+    refreshUser().catch(() => {})
   }
 
   return (
@@ -103,12 +90,13 @@ function SupplierPendingDashboard() {
       <Sidebar />
 
       <main className="flex flex-1 flex-col gap-4 pb-8 pl-14 pr-3 pt-16">
-        {approvalStatus === ACCOUNT_STATUS.NEEDS_CHANGES ? (
+        {approvalStatus === 'need_changes' ? (
           <section className="flex flex-col gap-3 rounded-xl border border-[#F2C8AD] bg-[#FFF8F3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-[14px] font-bold text-[#8A4318]">الحساب يحتاج إلى تعديلات</h2>
               <p className="mt-1 text-[12px] leading-6 text-[#8A664F]">
-                حدّث البيانات أو المستندات المطلوبة ثم أعد إرسال الحساب للمراجعة.
+                {displayProfile.needChangesReason ||
+                  'حدّث البيانات أو المستندات المطلوبة ثم أعد إرسال الحساب للمراجعة.'}
               </p>
             </div>
             <button

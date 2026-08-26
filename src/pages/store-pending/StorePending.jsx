@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
 import {
@@ -22,17 +22,17 @@ import {
 import logo from "../../assets/images/dachboard_Logo.svg";
 
 import {
-  getMockStoreAccountStatus,
   savePendingContactMock,
   savePendingNotesMock,
-  storePendingProfile,
 } from "../../services/store/storePending.mock";
 import PendingStatusBar from "../../components/PendingStatusBar";
 
 import {
-  ACCOUNT_STATUS,
-  resubmitApprovalAccountByEmail,
-} from "../../services/accountApproval.mock";
+  fetchUserProfile,
+  toViewModel,
+} from "../../services/profileService/profile";
+
+import { resubmitApprovalAccountByEmail } from "../../services/accountApproval.mock";
 
 const MAX_NOTES_LENGTH = 500;
 const PHONE_PATTERN = /^\+?[0-9\s()-]{7,20}$/;
@@ -594,61 +594,55 @@ function NotesCard() {
 }
 
 export default function StorePending() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
-  const [
-    accountStatus,
-    setAccountStatus,
-  ] = useState(() =>
-    getMockStoreAccountStatus(user),
-  );
+  // الحالة من السيرفر (البوابة حدّثتها قبل عرض هذه الشاشة)
+  const accountStatus = user?.status;
+
+  const [fetchedProfile, setFetchedProfile] =
+    useState(null);
+
+  const [profileError, setProfileError] =
+    useState(false);
 
   const [avatarSrc, setAvatarSrc] =
     useState("");
 
   const avatarInputRef = useRef(null);
 
-  const statusLabel =
-    accountStatus ===
-    ACCOUNT_STATUS.NEEDS_CHANGES
-      ? "تحتاج تعديلات"
-      : "قيد المراجعة";
+  // بيانات التسجيل الحقيقية للمتجر: الاسم، نوع النشاط، الموقع، والمستندات
+  useEffect(() => {
+    let active = true;
+
+    fetchUserProfile()
+      .then((response) => {
+        if (active)
+          setFetchedProfile(
+            toViewModel(response),
+          );
+      })
+      .catch(() => {
+        if (active)
+          setProfileError(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const profile = useMemo(
-    () => ({
-      ...storePendingProfile,
-
-      fullName:
-        `${user?.firstName || ""} ${
-          user?.lastName || ""
-        }`.trim() ||
-        storePendingProfile.fullName,
-
-      initial:
-        user?.firstName
-          ?.trim()
-          ?.charAt(0) ||
-        storePendingProfile.initial,
-
-      email:
-        user?.email ||
-        storePendingProfile.email,
-
-      status: accountStatus,
-
-      statusLabel,
-    }),
-    [
-      accountStatus,
-      statusLabel,
-      user,
-    ],
+    () =>
+      fetchedProfile
+        ? {
+            ...fetchedProfile,
+            status: accountStatus,
+          }
+        : null,
+    [accountStatus, fetchedProfile],
   );
 
-  if (
-    accountStatus ===
-    ACCOUNT_STATUS.APPROVED
-  ) {
+  if (accountStatus === "approved") {
     return (
       <Navigate
         to="/store"
@@ -657,15 +651,29 @@ export default function StorePending() {
     );
   }
 
-  const handleResubmit = () => {
-    const updated =
-      resubmitApprovalAccountByEmail(
-        profile.email,
-      );
+  if (profileError || !profile) {
+    return (
+      <div
+        dir="rtl"
+        className="flex min-h-screen items-center justify-center bg-[#F5F6F8] text-[13px] text-gray-400"
+      >
+        <PendingStatusBar />
 
-    if (updated) {
-      setAccountStatus(updated.status);
-    }
+        {profileError
+          ? "تعذّر تحميل بيانات المتجر."
+          : "جارٍ التحميل..."}
+      </div>
+    );
+  }
+
+  const handleResubmit = () => {
+    // نموذج تعديل البيانات لم يُبنَ بعد؛ مسار التحديث على السيرفر يشترط رفع
+    // المستندات. إلى حين ذلك نكتفي بإعادة قراءة الحالة من السيرفر.
+    resubmitApprovalAccountByEmail(
+      profile.email,
+    );
+
+    refreshUser().catch(() => {});
   };
 
   const handleAvatarChange = (
@@ -700,14 +708,14 @@ export default function StorePending() {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <MobilePendingHeader
-          statusLabel={statusLabel}
+          statusLabel={profile.statusLabel}
         />
 
         <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#F5F6F8] px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1320px]">
 
             {accountStatus ===
-            ACCOUNT_STATUS.NEEDS_CHANGES ? (
+            "need_changes" ? (
               <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-[#F2C8AD] bg-[#FFF8F3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-[14px] font-bold text-[#8A4318]">
@@ -715,8 +723,8 @@ export default function StorePending() {
                   </h2>
 
                   <p className="mt-1 text-[12px] leading-6 text-[#8A664F]">
-                    حدّث البيانات أو المستندات المطلوبة ثم
-                    أعد إرسال الحساب للمراجعة.
+                    {profile.needChangesReason ||
+                      "حدّث البيانات أو المستندات المطلوبة ثم أعد إرسال الحساب للمراجعة."}
                   </p>
                 </div>
 

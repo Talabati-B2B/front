@@ -1,6 +1,13 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
 
-import { logout as logoutRequest } from "../services/authService";
+import { getMe, logout as logoutRequest } from "../services/authService";
+import { normalizeUser } from "../utils/authNormalize";
 
 const AuthContext = createContext();
 
@@ -37,6 +44,24 @@ export function AuthProvider({ children }) {
     setToken(userToken);
   };
 
+  /*
+   * إعادة قراءة المستخدم من السيرفر.
+   *
+   * النسخة المخزّنة محلياً لقطة من لحظة تسجيل الدخول: لو وافق الأدمن على
+   * الحساب بعدها تبقى الحالة قديمة ويظل صاحبه عالقاً في شاشة الانتظار حتى
+   * يخرج ويدخل. /api/user هو مصدر الحقيقة للحالة والدور وبيانات النشاط.
+   */
+  const refreshUser = useCallback(async () => {
+    const fresh = normalizeUser(await getMe());
+
+    if (fresh) {
+      localStorage.setItem("user", JSON.stringify(fresh));
+      setUser(fresh);
+    }
+
+    return fresh;
+  }, []);
+
   const clearSession = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -64,6 +89,7 @@ export function AuthProvider({ children }) {
         status: user?.status ?? null,
         isAuthenticated: !!user,
         loginUser,
+        refreshUser,
         logout,
         loading,
       }}
