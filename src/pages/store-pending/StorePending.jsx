@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
 import {
   Archive,
@@ -17,7 +18,9 @@ import {
   Truck,
   Upload,
 } from "lucide-react";
+
 import logo from "../../assets/images/dachboard_Logo.svg";
+
 import {
   getMockStoreAccountStatus,
   savePendingContactMock,
@@ -25,15 +28,35 @@ import {
   storePendingProfile,
 } from "../../services/store/storePending.mock";
 
+import {
+  ACCOUNT_STATUS,
+  resubmitApprovalAccountByEmail,
+} from "../../services/accountApproval.mock";
+
 const MAX_NOTES_LENGTH = 500;
 const PHONE_PATTERN = /^\+?[0-9\s()-]{7,20}$/;
 
 const pendingMenu = [
-  { label: "لوحة التحكم", icon: LayoutDashboard },
-  { label: "الطلبات", icon: Truck },
-  { label: "المنتجات و المخزون", icon: Archive },
-  { label: "التقارير", icon: BarChart3 },
-  { label: "الإعدادات", icon: Settings },
+  {
+    label: "لوحة التحكم",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "الطلبات",
+    icon: Truck,
+  },
+  {
+    label: "المنتجات و المخزون",
+    icon: Archive,
+  },
+  {
+    label: "التقارير",
+    icon: BarChart3,
+  },
+  {
+    label: "الإعدادات",
+    icon: Settings,
+  },
 ];
 
 function PendingSidebar() {
@@ -76,7 +99,7 @@ function PendingSidebar() {
   );
 }
 
-function MobilePendingHeader() {
+function MobilePendingHeader({ statusLabel }) {
   return (
     <div className="flex items-center justify-between bg-[#082D63] px-4 py-3 text-white lg:hidden">
       <img
@@ -86,7 +109,7 @@ function MobilePendingHeader() {
       />
 
       <span className="rounded-full border border-[#FF7A2F] bg-white/5 px-3 py-1.5 text-[11px] font-bold text-[#FF9A63]">
-        قيد المراجعة
+        {statusLabel}
       </span>
     </div>
   );
@@ -154,7 +177,9 @@ function StoreInfoCard({ profile }) {
             </span>
 
             <div className="flex items-center gap-2 text-[#8A9099]">
-              <span className="text-[12px]">{label}</span>
+              <span className="text-[12px]">
+                {label}
+              </span>
 
               <Icon
                 className="h-4 w-4"
@@ -168,7 +193,10 @@ function StoreInfoCard({ profile }) {
   );
 }
 
-function ContactCard({ initialPhone, initialWhatsapp }) {
+function ContactCard({
+  initialPhone,
+  initialWhatsapp,
+}) {
   const [phone, setPhone] = useState(initialPhone);
   const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
   const [errors, setErrors] = useState({});
@@ -221,11 +249,12 @@ function ContactCard({ initialPhone, initialWhatsapp }) {
         onSubmit={handleSubmit}
         className="space-y-5"
       >
-        {/* PHONE */}
         <label className="block">
           <span className="mb-2 block text-[13px] font-bold text-[#252A31]">
             رقم الهاتف{" "}
-            <span className="text-[#F05A42]">*</span>
+            <span className="text-[#F05A42]">
+              *
+            </span>
           </span>
 
           <div
@@ -267,11 +296,12 @@ function ContactCard({ initialPhone, initialWhatsapp }) {
           ) : null}
         </label>
 
-        {/* WHATSAPP */}
         <label className="block">
           <span className="mb-2 block text-[13px] font-bold text-[#252A31]">
             رقم الواتساب{" "}
-            <span className="text-[#F05A42]">*</span>
+            <span className="text-[#F05A42]">
+              *
+            </span>
           </span>
 
           <div
@@ -358,7 +388,6 @@ function DocumentRow({
           : "border-[#FF625B]"
       }`}
     >
-      {/* INFO */}
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-bold text-[#242A33]">
           {document.title}
@@ -374,7 +403,6 @@ function DocumentRow({
         ) : null}
       </div>
 
-      {/* STATUS */}
       <span
         className={`shrink-0 rounded-md px-2.5 py-1.5 text-[10px] font-bold ${
           isUploaded
@@ -382,10 +410,11 @@ function DocumentRow({
             : "bg-[#E6E6E6] text-[#777D85]"
         }`}
       >
-        {isUploaded ? "تم التحقق" : "غير مرفوع"}
+        {isUploaded
+          ? "تم التحقق"
+          : "غير مرفوع"}
       </span>
 
-      {/* VIEW / UPLOAD */}
       {isUploaded ? (
         <button
           type="button"
@@ -405,10 +434,14 @@ function DocumentRow({
             type="file"
             className="hidden"
             onChange={(event) => {
-              const file = event.target.files?.[0];
+              const file =
+                event.target.files?.[0];
 
               if (file) {
-                onUpload(document.id, file);
+                onUpload(
+                  document.id,
+                  file,
+                );
               }
 
               event.target.value = "";
@@ -432,7 +465,6 @@ function DocumentRow({
         </>
       )}
 
-      {/* FINAL ICON */}
       {isUploaded ? (
         <CheckCircle2
           className="h-6 w-6 shrink-0 text-[#26A95B]"
@@ -448,11 +480,16 @@ function DocumentRow({
   );
 }
 
-function DocumentsCard({ initialDocuments }) {
+function DocumentsCard({
+  initialDocuments,
+}) {
   const [documents, setDocuments] =
     useState(initialDocuments);
 
-  const handleUpload = (documentId, file) => {
+  const handleUpload = (
+    documentId,
+    file,
+  ) => {
     setDocuments((current) =>
       current.map((document) =>
         document.id === documentId
@@ -470,7 +507,8 @@ function DocumentsCard({ initialDocuments }) {
   const handleView = (document) => {
     window.alert(
       `معاينة محلية: ${
-        document.fileName || document.title
+        document.fileName ||
+        document.title
       }`,
     );
   };
@@ -503,20 +541,22 @@ function DocumentsCard({ initialDocuments }) {
 }
 
 function NotesCard() {
-  const [notes, setNotes] = useState(() => {
-    try {
-      return (
-        window.localStorage.getItem(
-          "talabaty-store-pending-notes",
-        ) || ""
-      );
-    } catch {
-      return "";
-    }
-  });
+  const [notes, setNotes] =
+    useState(() => {
+      try {
+        return (
+          window.localStorage.getItem(
+            "talabaty-store-pending-notes",
+          ) || ""
+        );
+      } catch {
+        return "";
+      }
+    });
 
   const remainingLabel = useMemo(
-    () => `${notes.length}/${MAX_NOTES_LENGTH}`,
+    () =>
+      `${notes.length}/${MAX_NOTES_LENGTH}`,
     [notes],
   );
 
@@ -553,8 +593,13 @@ function NotesCard() {
 }
 
 export default function StorePending() {
-  const [accountStatus] = useState(() =>
-    getMockStoreAccountStatus(),
+  const { user } = useAuth();
+
+  const [
+    accountStatus,
+    setAccountStatus,
+  ] = useState(() =>
+    getMockStoreAccountStatus(user),
   );
 
   const [avatarSrc, setAvatarSrc] =
@@ -562,14 +607,71 @@ export default function StorePending() {
 
   const avatarInputRef = useRef(null);
 
-  const profile = storePendingProfile;
+  const statusLabel =
+    accountStatus ===
+    ACCOUNT_STATUS.NEEDS_CHANGES
+      ? "تحتاج تعديلات"
+      : "قيد المراجعة";
 
-  if (accountStatus === "approved") {
-    return <Navigate to="/store" replace />;
+  const profile = useMemo(
+    () => ({
+      ...storePendingProfile,
+
+      fullName:
+        `${user?.firstName || ""} ${
+          user?.lastName || ""
+        }`.trim() ||
+        storePendingProfile.fullName,
+
+      initial:
+        user?.firstName
+          ?.trim()
+          ?.charAt(0) ||
+        storePendingProfile.initial,
+
+      email:
+        user?.email ||
+        storePendingProfile.email,
+
+      status: accountStatus,
+
+      statusLabel,
+    }),
+    [
+      accountStatus,
+      statusLabel,
+      user,
+    ],
+  );
+
+  if (
+    accountStatus ===
+    ACCOUNT_STATUS.APPROVED
+  ) {
+    return (
+      <Navigate
+        to="/store"
+        replace
+      />
+    );
   }
 
-  const handleAvatarChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleResubmit = () => {
+    const updated =
+      resubmitApprovalAccountByEmail(
+        profile.email,
+      );
+
+    if (updated) {
+      setAccountStatus(updated.status);
+    }
+  };
+
+  const handleAvatarChange = (
+    event,
+  ) => {
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
@@ -590,16 +692,42 @@ export default function StorePending() {
   return (
     <div
       dir="rtl"
-      className="flex h-screen overflow-hidden bg-[#F5F6F8]"
+      className="fixed inset-0 flex overflow-hidden bg-[#F5F6F8]"
     >
       <PendingSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <MobilePendingHeader />
+        <MobilePendingHeader
+          statusLabel={statusLabel}
+        />
 
         <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#F5F6F8] px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1320px]">
-            {/* TOP PROFILE CARD */}
+
+            {accountStatus ===
+            ACCOUNT_STATUS.NEEDS_CHANGES ? (
+              <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-[#F2C8AD] bg-[#FFF8F3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-[14px] font-bold text-[#8A4318]">
+                    الحساب يحتاج إلى تعديلات
+                  </h2>
+
+                  <p className="mt-1 text-[12px] leading-6 text-[#8A664F]">
+                    حدّث البيانات أو المستندات المطلوبة ثم
+                    أعد إرسال الحساب للمراجعة.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResubmit}
+                  className="h-10 shrink-0 rounded-xl bg-[#F2762E] px-5 text-[12px] font-bold text-white transition hover:bg-[#DC6826]"
+                >
+                  إعادة الإرسال للمراجعة
+                </button>
+              </section>
+            ) : null}
+
             <section className="rounded-2xl border border-[#D7DAE0] bg-white px-6 py-6 shadow-[0_1px_4px_rgba(15,23,42,0.05)] sm:px-7">
               <input
                 ref={avatarInputRef}
@@ -611,7 +739,6 @@ export default function StorePending() {
               />
 
               <div className="grid items-center gap-7 lg:grid-cols-[auto_minmax(220px,0.85fr)_minmax(0,1.7fr)]">
-                {/* AVATAR */}
                 <div className="relative mx-auto shrink-0 lg:mx-0">
                   <div className="flex h-[92px] w-[92px] items-center justify-center overflow-hidden rounded-full bg-[#476C8F] text-[40px] font-bold text-white">
                     {avatarSrc ? (
@@ -621,7 +748,9 @@ export default function StorePending() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span>{profile.initial}</span>
+                      <span>
+                        {profile.initial}
+                      </span>
                     )}
                   </div>
 
@@ -640,7 +769,6 @@ export default function StorePending() {
                   </button>
                 </div>
 
-                {/* NAME */}
                 <div className="min-w-0 text-center lg:text-right">
                   <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                     <h1 className="truncate text-[22px] font-bold text-[#1F252D]">
@@ -660,7 +788,6 @@ export default function StorePending() {
                   </p>
                 </div>
 
-                {/* META */}
                 <div className="grid grid-cols-1 gap-5 border-t border-[#EFF0F2] pt-5 sm:grid-cols-3 lg:border-t-0 lg:pt-0">
                   <MetaItem
                     icon={CalendarDays}
@@ -683,9 +810,7 @@ export default function StorePending() {
               </div>
             </section>
 
-            {/* MAIN CARDS */}
             <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-              {/* RIGHT COLUMN */}
               <div className="space-y-6">
                 <DocumentsCard
                   initialDocuments={
@@ -696,7 +821,6 @@ export default function StorePending() {
                 <NotesCard />
               </div>
 
-              {/* LEFT COLUMN */}
               <div className="space-y-6">
                 <StoreInfoCard
                   profile={profile}
@@ -712,6 +836,7 @@ export default function StorePending() {
                 />
               </div>
             </div>
+
           </div>
         </main>
       </div>

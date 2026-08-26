@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import {
   storeProductCategories,
-  storeProducts,
   storeProductSummary,
   storeStockStatuses,
 } from "../../services/store/storeProducts.mock";
@@ -307,6 +306,7 @@ function PageButton({
 function ProductsContent({ initialSearchTerm = "" }) {
   const {
     searchValue: topbarSearchValue = "",
+    products = [],
     cartItems = [],
     addToCart,
     updateCartItemQuantity,
@@ -336,7 +336,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
     const localSearch = searchTerm.trim().toLowerCase();
     const topbarSearch = topbarSearchValue.trim().toLowerCase();
 
-    return storeProducts.filter((product) => {
+    return products.filter((product) => {
       const searchableValues = [
         product.name,
         product.sku,
@@ -365,7 +365,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
         matchesStockStatus
       );
     });
-  }, [searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
+  }, [products, searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
 
   const sortedProducts = useMemo(() => {
     if (!sortOption) {

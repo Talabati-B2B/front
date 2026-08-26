@@ -14,7 +14,7 @@ import logo from "../assets/images/dachboard_Logo.svg";
 const supplierNavigation = [
   {
     label: "لوحة التحكم",
-    to: "/",
+    to: "/supplier-dashboard",
     icon: FiHome,
     end: true,
   },

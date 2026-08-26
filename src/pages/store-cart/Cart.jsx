@@ -117,14 +117,17 @@ export default function Cart() {
     const groups = new Map();
 
     cartItems.forEach((item) => {
-      if (!groups.has(item.supplier)) {
-        groups.set(item.supplier, []);
+      const supplierId = item.supplierId ?? item.supplier;
+      const supplier = item.supplierName || item.supplier || "مورد";
+
+      if (!groups.has(String(supplierId))) {
+        groups.set(String(supplierId), { supplierId, supplier, items: [] });
       }
 
-      groups.get(item.supplier).push(item);
+      groups.get(String(supplierId)).items.push(item);
     });
 
-    return Array.from(groups, ([supplier, items]) => ({ supplier, items }));
+    return Array.from(groups.values());
   }, [cartItems]);
 
   const cartTotal = useMemo(
@@ -191,7 +194,7 @@ export default function Cart() {
           <div className="min-w-0 space-y-4">
             {supplierGroups.map((group) => (
               <section
-                key={group.supplier}
+                key={String(group.supplierId)}
                 className="min-w-0 overflow-hidden rounded-xl border border-[#E1E4E9] bg-white shadow-[0_1px_5px_rgba(15,23,42,0.04)]"
               >
                 <div className="flex items-center gap-3 px-4 py-4 lg:px-5">

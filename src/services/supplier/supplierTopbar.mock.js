@@ -6,7 +6,7 @@ export const supplierTopbarSearchItems = [
     id: "dashboard",
     label: "لوحة التحكم",
     meta: "الملخص والإحصائيات",
-    route: "/",
+    route: "/supplier-dashboard",
     keywords: ["لوحة التحكم", "الرئيسية", "dashboard", "home"],
   },
   {

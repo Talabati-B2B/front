@@ -86,7 +86,7 @@ export default function Register() {
       await Swal.fire({
         icon: "success",
         title: "تم التسجيل بنجاح! 🎉",
-        text: "تحقق من بريدك الإلكتروني لتفعيل حسابك",
+        text: "تم إرسال حسابك للمراجعة، ويمكنك تسجيل الدخول لمتابعة حالة الطلب",
         confirmButtonText: "الذهاب لتسجيل الدخول",
         confirmButtonColor: "#f97316",
       });
