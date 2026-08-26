@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   FiCheck,
   FiChevronDown,
@@ -11,6 +12,7 @@ import {
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
 import illustration from "../../assets/images/add-product-illustration.png";
+import { createStoreProduct } from "../../services/store/storeProducts.mock";
 
 const INITIAL_FORM = {
   name: "",
@@ -42,6 +44,7 @@ function FieldError({ message }) {
 
 export default function AddProduct() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState(INITIAL_FORM);
@@ -144,15 +147,29 @@ export default function AddProduct() {
   };
 
   const handleConfirm = () => {
-    const product = {
-      id: Date.now(),
-      ...form,
-      unitPrice: Number(form.unitPrice),
+    const supplierName =
+      user?.businessName ||
+      user?.storeName ||
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+      "مورد";
+
+    const product = createStoreProduct({
+      name: form.name.trim(),
+      description: form.description.trim(),
+      category: form.category,
+      sku: form.sku.trim(),
+      price: Number(form.unitPrice),
       suggestedPrice: Number(form.suggestedPrice),
       quantity: Number(form.quantity),
+      availableQuantity: Number(form.quantity),
+      stockQuantity: Number(form.quantity),
       minimumStock: Number(form.minimumStock),
+      stockUnit: "وحدة",
+      supplierId: user?.id,
+      supplierName,
+      supplier: supplierName,
       imageName: imageFile?.name ?? "",
-    };
+    });
 
     setSubmittedProduct(product);
     setShowConfirmation(false);

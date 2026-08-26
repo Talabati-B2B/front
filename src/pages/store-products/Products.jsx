@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import {
   storeProductCategories,
-  storeProducts,
   storeProductSummary,
   storeStockStatuses,
 } from "../../services/store/storeProducts.mock";
@@ -222,6 +221,7 @@ function PageButton({ children, active = false, disabled = false, onClick, label
 function ProductsContent({ initialSearchTerm = "" }) {
   const {
     searchValue: topbarSearchValue = "",
+    products = [],
     cartItems = [],
     addToCart,
   } = useOutletContext() ?? {};
@@ -235,7 +235,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
     const localSearch = searchTerm.trim().toLowerCase();
     const topbarSearch = topbarSearchValue.trim().toLowerCase();
 
-    return storeProducts.filter((product) => {
+    return products.filter((product) => {
       const searchableValues = [
         product.name,
         product.sku,
@@ -264,7 +264,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
         matchesStockStatus
       );
     });
-  }, [searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
+  }, [products, searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
 
   const totalPages = Math.max(
     1,

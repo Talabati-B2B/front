@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -14,131 +14,15 @@ import {
 
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
+import { useAuth } from "../../context/AuthContext";
+import {
+  deleteStoreProduct,
+  getSupplierProducts,
+  subscribeStoreProducts,
+  updateStoreProduct,
+} from "../../services/store/storeProducts.mock";
 
 const PRODUCTS_PER_PAGE = 5;
-
-const initialProducts = [
-  {
-    id: 1,
-    name: "عصير برتقال طبيعي 1 لتر",
-    sku: "TB-PR-001",
-    category: "مشروبات",
-    price: 24,
-    stockQuantity: 48,
-    stockUnit: "كرتونة",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 2,
-    name: "منظف أرضيات 3 لتر",
-    sku: "TB-PR-002",
-    category: "تنظيف",
-    price: 30,
-    stockQuantity: 12,
-    stockUnit: "كرتونة",
-    stockStatus: "مخزون منخفض",
-  },
-  {
-    id: 3,
-    name: "علب وجبات ورقية",
-    sku: "TB-PR-003",
-    category: "تغليف",
-    price: 40,
-    stockQuantity: 0,
-    stockUnit: "حبة",
-    stockStatus: "نفذ المخزون",
-  },
-  {
-    id: 4,
-    name: "مناديل مطاعم",
-    sku: "TB-PR-004",
-    category: "مستلزمات",
-    price: 50,
-    stockQuantity: 40,
-    stockUnit: "كرتونة",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 5,
-    name: "أكواب ورقية 12 أونصة",
-    sku: "TB-PR-005",
-    category: "تغليف",
-    price: 50,
-    stockQuantity: 100,
-    stockUnit: "حبة",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 6,
-    name: "مياه معدنية 1.5 لتر",
-    sku: "TB-PR-006",
-    category: "مشروبات",
-    price: 18,
-    stockQuantity: 75,
-    stockUnit: "كرتونة",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 7,
-    name: "سكر أبيض 1 كجم",
-    sku: "TB-PR-007",
-    category: "مواد غذائية",
-    price: 7.5,
-    stockQuantity: 8,
-    stockUnit: "كرتونة",
-    stockStatus: "مخزون منخفض",
-  },
-  {
-    id: 8,
-    name: "أكياس نفايات كبيرة",
-    sku: "TB-PR-008",
-    category: "مستلزمات",
-    price: 16,
-    stockQuantity: 0,
-    stockUnit: "رزمة",
-    stockStatus: "نفذ المخزون",
-  },
-  {
-    id: 9,
-    name: "صابون سائل 5 لتر",
-    sku: "TB-PR-009",
-    category: "تنظيف",
-    price: 28,
-    stockQuantity: 17,
-    stockUnit: "عبوة",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 10,
-    name: "قفازات استخدام مرة واحدة",
-    sku: "TB-PR-010",
-    category: "مستلزمات",
-    price: 22,
-    stockQuantity: 6,
-    stockUnit: "علبة",
-    stockStatus: "مخزون منخفض",
-  },
-  {
-    id: 11,
-    name: "أرز بسمتي 5 كجم",
-    sku: "TB-PR-011",
-    category: "مواد غذائية",
-    price: 42,
-    stockQuantity: 30,
-    stockUnit: "كيس",
-    stockStatus: "متوفر",
-  },
-  {
-    id: 12,
-    name: "رول تغليف غذائي",
-    sku: "TB-PR-012",
-    category: "تغليف",
-    price: 14,
-    stockQuantity: 4,
-    stockUnit: "رول",
-    stockStatus: "مخزون منخفض",
-  },
-];
 
 const STOCK_STATUSES = [
   "متوفر",
@@ -271,12 +155,15 @@ function ModalShell({
 }
 
 export default function Products() {
-  const [localProducts, setLocalProducts] =
-    useState(() =>
-      initialProducts.map((product) => ({
-        ...product,
-      })),
-    );
+  const { user } = useAuth();
+  const [localProducts, setLocalProducts] = useState(() =>
+    getSupplierProducts(user?.id),
+  );
+
+  useEffect(() => {
+    const syncProducts = () => setLocalProducts(getSupplierProducts(user?.id));
+    return subscribeStoreProducts(syncProducts);
+  }, [user?.id]);
 
   const [searchTerm, setSearchTerm] =
     useState("");
@@ -504,25 +391,18 @@ export default function Products() {
       return;
     }
 
-    setLocalProducts(
-      (currentProducts) =>
-        currentProducts.map((product) =>
-          product.id === editingProduct.id
-            ? {
-                ...product,
-                name,
-                sku,
-                category,
-                price,
-                stockQuantity,
-                stockUnit,
-                stockStatus:
-                  editForm.stockStatus,
-              }
-            : product,
-        ),
-    );
+    updateStoreProduct(editingProduct.id, {
+      name,
+      sku,
+      category,
+      price,
+      stockQuantity,
+      availableQuantity: stockQuantity,
+      stockUnit,
+      stockStatus: editForm.stockStatus,
+    });
 
+    setLocalProducts(getSupplierProducts(user?.id));
     setEditingProduct(null);
     setEditError("");
     setCurrentPage(1);
@@ -533,14 +413,8 @@ export default function Products() {
       return;
     }
 
-    setLocalProducts(
-      (currentProducts) =>
-        currentProducts.filter(
-          (product) =>
-            product.id !==
-            deletingProduct.id,
-        ),
-    );
+    deleteStoreProduct(deletingProduct.id, user?.id);
+    setLocalProducts(getSupplierProducts(user?.id));
 
     setDeletingProduct(null);
     setCurrentPage(1);

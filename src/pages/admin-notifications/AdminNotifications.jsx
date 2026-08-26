@@ -13,6 +13,11 @@ import {
   FiUsers,
   FiX,
 } from "react-icons/fi";
+import {
+  getApprovalNotifications,
+  markAllApprovalNotificationsRead,
+  markApprovalNotificationRead,
+} from "../../services/accountApproval.mock";
 
 const initialNotifications = [
   {
@@ -96,6 +101,21 @@ const initialNotifications = [
   },
 ];
 
+function approvalNotificationToUi(notification) {
+  return {
+    ...notification,
+    icon: FiUser,
+    iconClass: "bg-[#F1DDF3] text-[#9C3AAA]",
+  };
+}
+
+function getInitialNotifications() {
+  const approvalNotifications = getApprovalNotifications().map(
+    approvalNotificationToUi,
+  );
+  return [...approvalNotifications, ...initialNotifications];
+}
+
 const filters = [
   { label: "الكل" },
   { label: "غير مقروء", unreadOnly: true },
@@ -105,7 +125,7 @@ const filters = [
 ];
 
 export default function AdminNotifications() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState(getInitialNotifications);
   const [activeFilter, setActiveFilter] = useState("الكل");
   const [selectedNotificationId, setSelectedNotificationId] = useState(null);
 
@@ -132,16 +152,20 @@ export default function AdminNotifications() {
   }, [activeFilter, notifications]);
 
   const markAsRead = (notificationId) => {
+    const notification = notifications.find((item) => item.id === notificationId);
+    if (notification?.kind === "account-approval") {
+      markApprovalNotificationRead(notificationId);
+    }
+
     setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) =>
-        notification.id === notificationId
-          ? { ...notification, isRead: true }
-          : notification,
+      currentNotifications.map((item) =>
+        item.id === notificationId ? { ...item, isRead: true } : item,
       ),
     );
   };
 
   const markAllAsRead = () => {
+    markAllApprovalNotificationsRead();
     setNotifications((currentNotifications) =>
       currentNotifications.map((notification) => ({
         ...notification,
@@ -371,6 +395,16 @@ export default function AdminNotifications() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 border-t border-[#E7E9ED] px-5 py-4">
+                {selectedNotification.kind === "account-approval" ? (
+                  <Link
+                    to="/admin/account-review"
+                    onClick={() => markAsRead(selectedNotification.id)}
+                    className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#062454] px-4 text-[12px] font-semibold text-white transition hover:bg-[#0A315E]"
+                  >
+                    مراجعة الحساب
+                  </Link>
+                ) : null}
+
                 {selectedNotification.relatedOrderId ? (
                   <Link
                     to="/admin/orders"

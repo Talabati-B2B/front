@@ -1,6 +1,8 @@
 import { storeProfile } from "./storeProfile.mock";
-
-export const STORE_PENDING_STATUS_KEY = "talabaty-store-account-status";
+import {
+  ACCOUNT_STATUS,
+  getAccountStatusForUser,
+} from "../accountApproval.mock";
 
 export const storePendingProfile = {
   fullName:
@@ -53,14 +55,29 @@ export const storePendingProfile = {
   ],
 };
 
-export function getMockStoreAccountStatus() {
-  try {
+export function getMockStoreAccountStatus(user) {
+  if (user) {
     return (
-      window.localStorage.getItem(STORE_PENDING_STATUS_KEY) ||
-      "pending"
+      getAccountStatusForUser(user) ||
+      ACCOUNT_STATUS.PENDING
+    );
+  }
+
+  try {
+    const savedUser =
+      window.localStorage.getItem("user");
+
+    const parsedUser =
+      savedUser
+        ? JSON.parse(savedUser)
+        : null;
+
+    return (
+      getAccountStatusForUser(parsedUser) ||
+      ACCOUNT_STATUS.PENDING
     );
   } catch {
-    return "pending";
+    return ACCOUNT_STATUS.PENDING;
   }
 }
 

@@ -14,119 +14,13 @@ import {
   FiX,
   FiXCircle,
 } from "react-icons/fi";
+import {
+  ACCOUNT_STATUS,
+  getApprovalAccounts,
+  updateApprovalStatus,
+} from "../../services/accountApproval.mock";
 
 const PAGE_SIZE = 6;
-
-const initialAccounts = [
-  {
-    id: 1,
-    name: "مخازن الأمانة",
-    accountType: "مورد",
-    email: "alamana.supplier@example.com",
-    phone: "0599123456",
-    submittedDate: "2026-08-19",
-    status: "قيد المراجعة",
-  },
-  {
-    id: 2,
-    name: "متجر النور",
-    accountType: "متجر",
-    email: "alnoor.store@example.com",
-    phone: "0568452190",
-    submittedDate: "2026-08-19",
-    status: "قيد المراجعة",
-  },
-  {
-    id: 3,
-    name: "شركة البركة للتوزيع",
-    accountType: "مورد",
-    email: "baraka.dist@example.com",
-    phone: "0597336142",
-    submittedDate: "2026-08-18",
-    status: "تحتاج تعديلات",
-  },
-  {
-    id: 4,
-    name: "سوبر ماركت الأمل",
-    accountType: "متجر",
-    email: "alamal.market@example.com",
-    phone: "0569127584",
-    submittedDate: "2026-08-18",
-    status: "قيد المراجعة",
-  },
-  {
-    id: 5,
-    name: "مؤسسة الخير التجارية",
-    accountType: "مورد",
-    email: "alkhair.trade@example.com",
-    phone: "0598546321",
-    submittedDate: "2026-08-17",
-    status: "مقبول",
-  },
-  {
-    id: 6,
-    name: "متجر الوفاء",
-    accountType: "متجر",
-    email: "alwafaa.store@example.com",
-    phone: "0567029143",
-    submittedDate: "2026-08-17",
-    status: "تحتاج تعديلات",
-  },
-  {
-    id: 7,
-    name: "مخازن الندى",
-    accountType: "مورد",
-    email: "alnada.supplier@example.com",
-    phone: "0596247851",
-    submittedDate: "2026-08-16",
-    status: "قيد المراجعة",
-  },
-  {
-    id: 8,
-    name: "أسواق الهدى",
-    accountType: "متجر",
-    email: "alhuda.market@example.com",
-    phone: "0568912734",
-    submittedDate: "2026-08-15",
-    status: "مقبول",
-  },
-  {
-    id: 9,
-    name: "شركة الإمداد الحديثة",
-    accountType: "مورد",
-    email: "supply.modern@example.com",
-    phone: "0594812637",
-    submittedDate: "2026-08-15",
-    status: "مرفوض",
-  },
-  {
-    id: 10,
-    name: "متجر السلام",
-    accountType: "متجر",
-    email: "alsalam.store@example.com",
-    phone: "0565379182",
-    submittedDate: "2026-08-14",
-    status: "قيد المراجعة",
-  },
-  {
-    id: 11,
-    name: "مخازن السعادة",
-    accountType: "مورد",
-    email: "alsaada.stock@example.com",
-    phone: "0591654382",
-    submittedDate: "2026-08-14",
-    status: "تحتاج تعديلات",
-  },
-  {
-    id: 12,
-    name: "مركز الوفاق التجاري",
-    accountType: "متجر",
-    email: "alwefaq.center@example.com",
-    phone: "0563248719",
-    submittedDate: "2026-08-13",
-    status: "مرفوض",
-  },
-];
 
 const statusStyles = {
   "قيد المراجعة": "bg-[#FFF3E8] text-[#D96919]",
@@ -140,12 +34,21 @@ const accountTypeStyles = {
   متجر: "bg-[#FFF2E8] text-[#D96919]",
 };
 
+const statusLabels = {
+  [ACCOUNT_STATUS.PENDING]: "قيد المراجعة",
+  [ACCOUNT_STATUS.NEEDS_CHANGES]: "تحتاج تعديلات",
+  [ACCOUNT_STATUS.APPROVED]: "مقبول",
+  [ACCOUNT_STATUS.REJECTED]: "مرفوض",
+};
+
 function StatusBadge({ status }) {
+  const label = statusLabels[status] ?? status;
+
   return (
     <span
-      className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold ${statusStyles[status] ?? "bg-[#F1F3F5] text-[#5F6368]"}`}
+      className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold ${statusStyles[label] ?? "bg-[#F1F3F5] text-[#5F6368]"}`}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -169,17 +72,18 @@ function formatDate(dateString) {
 }
 
 export default function AdminAccountReview() {
-  const [accounts, setAccounts] = useState(initialAccounts);
+  const [accounts, setAccounts] = useState(() => getApprovalAccounts());
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [statusFilter, setStatusFilter] = useState("الكل");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [rejectingAccount, setRejectingAccount] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const stats = useMemo(() => {
     const pendingAccounts = accounts.filter(
-      (account) => account.status === "قيد المراجعة",
+      (account) => account.status === ACCOUNT_STATUS.PENDING,
     );
 
     return [
@@ -208,7 +112,7 @@ export default function AdminAccountReview() {
       {
         label: "تحتاج إلى تعديلات",
         value: accounts.filter(
-          (account) => account.status === "تحتاج تعديلات",
+          (account) => account.status === ACCOUNT_STATUS.NEEDS_CHANGES,
         ).length,
         icon: FiEdit3,
         iconClass: "bg-[#F3F0FF] text-[#6D5BD0]",
@@ -228,7 +132,7 @@ export default function AdminAccountReview() {
       const matchesType =
         typeFilter === "الكل" || account.accountType === typeFilter;
       const matchesStatus =
-        statusFilter === "الكل" || account.status === statusFilter;
+        statusFilter === "الكل" || statusLabels[account.status] === statusFilter;
 
       return matchesSearch && matchesType && matchesStatus;
     });
@@ -242,33 +146,39 @@ export default function AdminAccountReview() {
     startIndex + PAGE_SIZE,
   );
 
-  const updateAccountStatus = (accountId, status) => {
-    setAccounts((current) =>
-      current.map((account) =>
-        account.id === accountId ? { ...account, status } : account,
-      ),
-    );
+  const updateAccountStatus = (accountId, status, reason = null) => {
+    const updated = updateApprovalStatus(accountId, status, reason);
+    if (!updated) return;
 
+    setAccounts(getApprovalAccounts());
     setSelectedAccount((current) =>
-      current?.id === accountId ? { ...current, status } : current,
+      current?.id === accountId ? updated : current,
     );
   };
 
   const handleApprove = (accountId) => {
-    updateAccountStatus(accountId, "مقبول");
+    updateAccountStatus(accountId, ACCOUNT_STATUS.APPROVED);
   };
 
   const handleRequestChanges = (accountId) => {
-    updateAccountStatus(accountId, "تحتاج تعديلات");
+    updateAccountStatus(accountId, ACCOUNT_STATUS.NEEDS_CHANGES);
+  };
+
+  const openRejectDialog = (account) => {
+    setRejectingAccount(account);
+    setRejectionReason(account.rejectionReason || "");
   };
 
   const confirmReject = () => {
-    if (!rejectingAccount) {
-      return;
-    }
+    if (!rejectingAccount || !rejectionReason.trim()) return;
 
-    updateAccountStatus(rejectingAccount.id, "مرفوض");
+    updateAccountStatus(
+      rejectingAccount.id,
+      ACCOUNT_STATUS.REJECTED,
+      rejectionReason,
+    );
     setRejectingAccount(null);
+    setRejectionReason("");
   };
 
   const handleSearchChange = (event) => {
@@ -468,7 +378,7 @@ export default function AdminAccountReview() {
 
                           <button
                             type="button"
-                            onClick={() => setRejectingAccount(account)}
+                            onClick={() => openRejectDialog(account)}
                             className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-[#F2D1D1] bg-white px-2.5 text-[11px] font-semibold text-[#C93C3C] transition hover:bg-[#FDECEC]"
                             title={`رفض ${account.name}`}
                           >
@@ -664,7 +574,7 @@ export default function AdminAccountReview() {
               <button
                 type="button"
                 onClick={() => {
-                  setRejectingAccount(selectedAccount);
+                  openRejectDialog(selectedAccount);
                   setSelectedAccount(null);
                 }}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#F2D1D1] bg-white px-3.5 text-[11px] font-semibold text-[#C93C3C] transition hover:bg-[#FDECEC]"
@@ -720,10 +630,26 @@ export default function AdminAccountReview() {
               </p>
             </div>
 
+            <div className="px-5 pb-1 pt-5">
+              <label className="block text-right text-[12px] font-semibold text-[#333842]">
+                سبب الرفض
+                <textarea
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                  rows={4}
+                  placeholder="اكتب سبب رفض الحساب..."
+                  className="mt-2 w-full resize-none rounded-xl border border-[#DDE1E7] bg-white p-3 text-[12px] leading-6 text-[#333842] outline-none transition focus:border-[#C93C3C] focus:ring-2 focus:ring-[#C93C3C]/10"
+                />
+              </label>
+            </div>
+
             <div className="mt-6 flex items-center justify-center gap-2 border-t border-[#EEF0F3] bg-[#FAFBFC] px-5 py-4">
               <button
                 type="button"
-                onClick={() => setRejectingAccount(null)}
+                onClick={() => {
+                  setRejectingAccount(null);
+                  setRejectionReason("");
+                }}
                 className="h-9 min-w-[100px] rounded-lg border border-[#DDE1E7] bg-white px-4 text-[12px] font-semibold text-[#40577B] transition hover:bg-[#F4F6F9]"
               >
                 إلغاء
@@ -731,7 +657,8 @@ export default function AdminAccountReview() {
               <button
                 type="button"
                 onClick={confirmReject}
-                className="h-9 min-w-[100px] rounded-lg bg-[#C93C3C] px-4 text-[12px] font-semibold text-white transition hover:bg-[#B43434]"
+                disabled={!rejectionReason.trim()}
+                className="h-9 min-w-[100px] rounded-lg bg-[#C93C3C] px-4 text-[12px] font-semibold text-white transition hover:bg-[#B43434] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 تأكيد الرفض
               </button>
