@@ -14,6 +14,12 @@ import {
   FiX,
   FiXCircle,
 } from "react-icons/fi";
+import {
+  ACCOUNT_STATUS,
+  ensureApprovalAccount,
+  getApprovalAccounts,
+  updateApprovalStatusByEmail,
+} from "../../services/accountApproval.mock";
 
 const PAGE_SIZE = 5;
 
@@ -260,6 +266,56 @@ const initialUsers = [
   },
 ];
 
+const statusLabels = {
+  [ACCOUNT_STATUS.PENDING]: "قيد المراجعة",
+  [ACCOUNT_STATUS.NEEDS_CHANGES]: "تحتاج تعديلات",
+  [ACCOUNT_STATUS.APPROVED]: "مقبول",
+  [ACCOUNT_STATUS.REJECTED]: "مرفوض",
+};
+
+const labelToStatus = {
+  "قيد المراجعة": ACCOUNT_STATUS.PENDING,
+  "تحتاج تعديلات": ACCOUNT_STATUS.NEEDS_CHANGES,
+  مقبول: ACCOUNT_STATUS.APPROVED,
+  مرفوض: ACCOUNT_STATUS.REJECTED,
+};
+
+function buildSyncedUsers() {
+  initialUsers.forEach((user) => {
+    ensureApprovalAccount(
+      {
+        ...user,
+        submittedDate: user.joinDate,
+      },
+      labelToStatus[user.status] ?? ACCOUNT_STATUS.PENDING,
+    );
+  });
+
+  const byEmail = new Map(
+    initialUsers.map((user) => [user.email.toLowerCase(), user]),
+  );
+
+  return getApprovalAccounts()
+    .filter((account) => account.accountType === "مورد" || account.accountType === "متجر")
+    .map((account) => {
+      const base = byEmail.get(account.email.toLowerCase());
+
+      return {
+        id: base?.id ?? `approval-${account.id}`,
+        approvalId: account.id,
+        name: account.name || base?.name || "حساب",
+        accountType: account.accountType,
+        email: account.email,
+        phone: account.phone || base?.phone || "—",
+        activityType: base?.activityType || "—",
+        category: base?.category || "—",
+        region: base?.region || "—",
+        status: statusLabels[account.status] ?? account.status,
+        joinDate: base?.joinDate || account.submittedDate,
+      };
+    });
+}
+
 const statusStyles = {
   "قيد المراجعة": "bg-[#FFE9DA] text-[#F2762E]",
   "تحتاج تعديلات": "bg-[#EEF3FA] text-[#40577B]",
@@ -313,7 +369,7 @@ function initials(name) {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState(() => buildSyncedUsers());
   const [activeTab, setActiveTab] = useState("مورد");
   const [searchTerm, setSearchTerm] = useState("");
   const [activityFilter, setActivityFilter] = useState("الكل");
@@ -323,6 +379,7 @@ export default function AdminUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [rejectingAccount, setRejectingAccount] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const tabUsers = useMemo(
     () => users.filter((user) => user.accountType === activeTab),
@@ -430,16 +487,32 @@ export default function AdminUsers() {
   const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
   const visibleUsers = filteredUsers.slice(startIndex, startIndex + PAGE_SIZE);
 
-  const updateAccountStatus = (accountId, status) => {
+  const updateAccountStatus = (accountId, status, reason = null) => {
+    const target = users.find((user) => String(user.id) === String(accountId));
+    if (!target) return;
+
+    const updated = updateApprovalStatusByEmail(target.email, status, reason);
+    if (!updated) return;
+
+    const nextStatus = statusLabels[updated.status] ?? updated.status;
     setUsers((current) =>
       current.map((user) =>
-        user.id === accountId ? { ...user, status } : user,
+        user.email.toLowerCase() === target.email.toLowerCase()
+          ? { ...user, status: nextStatus, approvalId: updated.id }
+          : user,
       ),
     );
 
     setSelectedAccount((current) =>
-      current?.id === accountId ? { ...current, status } : current,
+      current?.email?.toLowerCase() === target.email.toLowerCase()
+        ? { ...current, status: nextStatus, approvalId: updated.id }
+        : current,
     );
+  };
+
+  const openRejectDialog = (account) => {
+    setRejectingAccount(account);
+    setRejectionReason("");
   };
 
   const handleTabChange = (tab) => {
@@ -458,12 +531,15 @@ export default function AdminUsers() {
   };
 
   const confirmReject = () => {
-    if (!rejectingAccount) {
-      return;
-    }
+    if (!rejectingAccount || !rejectionReason.trim()) return;
 
-    updateAccountStatus(rejectingAccount.id, "مرفوض");
+    updateAccountStatus(
+      rejectingAccount.id,
+      ACCOUNT_STATUS.REJECTED,
+      rejectionReason,
+    );
     setRejectingAccount(null);
+    setRejectionReason("");
   };
 
   const currentTabConfig = tabConfig[activeTab];
@@ -689,7 +765,7 @@ export default function AdminUsers() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateAccountStatus(user.id, "مقبول")
+                              updateAccountStatus(user.id, ACCOUNT_STATUS.APPROVED)
                             }
                             disabled={user.status === "مقبول"}
                             className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D6DADF] bg-white text-[#15803D] transition-colors hover:bg-[#EAF8EF] disabled:cursor-not-allowed disabled:opacity-35"
@@ -701,7 +777,7 @@ export default function AdminUsers() {
                           <button
                             type="button"
                             onClick={() =>
-                              updateAccountStatus(user.id, "تحتاج تعديلات")
+                              updateAccountStatus(user.id, ACCOUNT_STATUS.NEEDS_CHANGES)
                             }
                             disabled={user.status === "تحتاج تعديلات"}
                             className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D6DADF] bg-white text-[#40577B] transition-colors hover:bg-[#EEF3FA] disabled:cursor-not-allowed disabled:opacity-35"
@@ -712,7 +788,7 @@ export default function AdminUsers() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setRejectingAccount(user)}
+                            onClick={() => openRejectDialog(user)}
                             disabled={user.status === "مرفوض"}
                             className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D6DADF] bg-white text-[#C93C3C] transition-colors hover:bg-[#FDECEC] disabled:cursor-not-allowed disabled:opacity-35"
                             title={`رفض ${user.name}`}
@@ -868,7 +944,7 @@ export default function AdminUsers() {
             <div className="flex flex-wrap justify-end gap-2 border-t border-[#EEF0F3] px-5 py-4">
               <button
                 type="button"
-                onClick={() => updateAccountStatus(selectedAccount.id, "مقبول")}
+                onClick={() => updateAccountStatus(selectedAccount.id, ACCOUNT_STATUS.APPROVED)}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[11px] font-semibold text-white transition hover:bg-[#126C34]"
               >
                 <FiCheck size={14} aria-hidden="true" />
@@ -877,7 +953,7 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={() =>
-                  updateAccountStatus(selectedAccount.id, "تحتاج تعديلات")
+                  updateAccountStatus(selectedAccount.id, ACCOUNT_STATUS.NEEDS_CHANGES)
                 }
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#EEF3FA] px-4 text-[11px] font-semibold text-[#40577B] transition hover:bg-[#E2E9F3]"
               >
@@ -886,7 +962,7 @@ export default function AdminUsers() {
               </button>
               <button
                 type="button"
-                onClick={() => setRejectingAccount(selectedAccount)}
+                onClick={() => openRejectDialog(selectedAccount)}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#FDECEC] px-4 text-[11px] font-semibold text-[#C93C3C] transition hover:bg-[#F9DDDD]"
               >
                 <FiX size={14} aria-hidden="true" />
@@ -927,10 +1003,24 @@ export default function AdminUsers() {
               تحديث الحالة محليًا إلى "مرفوض".
             </p>
 
+            <label className="mt-4 block text-right text-[12px] font-semibold text-[#333842]">
+              سبب الرفض
+              <textarea
+                value={rejectionReason}
+                onChange={(event) => setRejectionReason(event.target.value)}
+                rows={4}
+                placeholder="اكتب سبب رفض الحساب..."
+                className="mt-2 w-full resize-none rounded-xl border border-[#DDE1E7] bg-white p-3 text-[12px] leading-6 text-[#333842] outline-none transition focus:border-[#C93C3C] focus:ring-2 focus:ring-[#C93C3C]/10"
+              />
+            </label>
+
             <div className="mt-5 flex items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={() => setRejectingAccount(null)}
+                onClick={() => {
+                  setRejectingAccount(null);
+                  setRejectionReason("");
+                }}
                 className="h-10 min-w-[110px] rounded-lg border border-[#DDE1E7] bg-white px-4 text-[12px] font-semibold text-[#44474F] transition hover:bg-[#F4F6F9]"
               >
                 إلغاء
@@ -938,7 +1028,8 @@ export default function AdminUsers() {
               <button
                 type="button"
                 onClick={confirmReject}
-                className="h-10 min-w-[110px] rounded-lg bg-[#C93C3C] px-4 text-[12px] font-semibold text-white transition hover:bg-[#B73333]"
+                disabled={!rejectionReason.trim()}
+                className="h-10 min-w-[110px] rounded-lg bg-[#C93C3C] px-4 text-[12px] font-semibold text-white transition hover:bg-[#B73333] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 تأكيد الرفض
               </button>

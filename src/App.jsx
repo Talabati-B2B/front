@@ -8,6 +8,8 @@ import Login from "./pages/auth/login/Login";
 import Register from "./pages/auth/register/Register";
 import ForgotPassword from "./pages/auth/forgot-password/ForgotPassword";
 import ResetPassword from "./pages/auth/reset-password/ResetPassword";
+import AccountStatusGate from "./components/auth/AccountStatusGate";
+import AccountRejected from "./pages/account-rejected/AccountRejected";
 
 // Supplier
 import SupplierDashboard from "./pages/supplier-dashboard/SupplierDashboard";
@@ -67,34 +69,47 @@ export default function App() {
 
       <Route path="/reset-password" element={<ResetPassword />} />
 
+      <Route path="/account-rejected" element={<AccountRejected />} />
+
       {/* ================= Supplier ================= */}
 
-      <Route path="/supplier-dashboard" element={<SupplierDashboard />} />
+      <Route
+        path="/supplier-dashboard"
+        element={
+          <AccountStatusGate role="supplier">
+            <SupplierDashboard />
+          </AccountStatusGate>
+        }
+      />
 
       <Route
         path="/supplierpendingdashboard"
-        element={<SupplierPendingDashboard />}
+        element={
+          <AccountStatusGate role="supplier" pendingOnly>
+            <SupplierPendingDashboard />
+          </AccountStatusGate>
+        }
       />
 
-      <Route path="/orders" element={<Order />} />
+      <Route path="/orders" element={<AccountStatusGate role="supplier"><Order /></AccountStatusGate>} />
 
-      <Route path="/products" element={<SupplierProducts />} />
+      <Route path="/products" element={<AccountStatusGate role="supplier"><SupplierProducts /></AccountStatusGate>} />
 
-      <Route path="/products/add" element={<AddProduct />} />
+      <Route path="/products/add" element={<AccountStatusGate role="supplier"><AddProduct /></AccountStatusGate>} />
 
-      <Route path="/reports" element={<SupplierReports />} />
+      <Route path="/reports" element={<AccountStatusGate role="supplier"><SupplierReports /></AccountStatusGate>} />
 
-      <Route path="/settings" element={<SupplierSettings />} />
+      <Route path="/settings" element={<AccountStatusGate role="supplier"><SupplierSettings /></AccountStatusGate>} />
 
-      <Route path="/profile" element={<SupplierProfile />} />
+      <Route path="/profile" element={<AccountStatusGate role="supplier"><SupplierProfile /></AccountStatusGate>} />
 
       {/* ================= Store Pending ================= */}
 
-      <Route path="/store/pending" element={<StorePending />} />
+      <Route path="/store/pending" element={<AccountStatusGate role="store" pendingOnly><StorePending /></AccountStatusGate>} />
 
       {/* ================= Store ================= */}
 
-      <Route path="/store" element={<StoreLayout />}>
+      <Route path="/store" element={<AccountStatusGate role="store"><StoreLayout /></AccountStatusGate>}>
         <Route index element={<StoreDashboard />} />
 
         <Route path="suppliers" element={<Suppliers />} />
