@@ -7,7 +7,10 @@ import TopStores from "../../components/TopStores";
 
 export default function OrdersPage() {
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F7F8FA]" dir="rtl">
+    <div
+      className="flex h-screen overflow-hidden bg-[#F7F8FA]"
+      dir="rtl"
+    >
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -21,6 +24,7 @@ export default function OrdersPage() {
               <h1 className="text-[28px] font-bold leading-tight text-[#00163B] sm:text-[32px]">
                 الطلبات الواردة
               </h1>
+
               <p className="mt-2 text-[13px] leading-6 text-[#44474F] sm:text-[14px]">
                 إدارة وتتبع جميع الطلبات المرسلة من المتاجر المتعاقد معها
               </p>
