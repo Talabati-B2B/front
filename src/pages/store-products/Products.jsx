@@ -365,7 +365,13 @@ function ProductsContent({ initialSearchTerm = "" }) {
         matchesStockStatus
       );
     });
-  }, [products, searchTerm, topbarSearchValue, categoryFilter, stockStatusFilter]);
+  }, [
+    products,
+    searchTerm,
+    topbarSearchValue,
+    categoryFilter,
+    stockStatusFilter,
+  ]);
 
   const sortedProducts = useMemo(() => {
     if (!sortOption) {
