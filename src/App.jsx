@@ -3,7 +3,7 @@ import { useAuth } from "./context/AuthContext";
 import ChatWidget from "./components/chatbot/ChatWidget";
 
 
-
+import ProtectedRoute from "./components/ProtectedRoute";
 // Landing
 import LandingPage from "./pages/landing-page/landingPage";
 
