@@ -2,8 +2,6 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import ChatWidget from "./components/chatbot/ChatWidget";
 
-
-import ProtectedRoute from "./components/ProtectedRoute";
 // Landing
 import LandingPage from "./pages/landing-page/landingPage";
 
@@ -104,24 +102,73 @@ export default function App() {
 
         {/* ================= Supplier ================= */}
 
-        <Route path="/supplier-dashboard" element={<ProtectedRoute role="supplier"><SupplierDashboard /></ProtectedRoute>} />
+        <Route
+          path="/supplier-dashboard"
+          element={
+            <ProtectedRoute role="supplier">
+              <SupplierDashboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/supplierpendingdashboard"
           element={<SupplierPendingDashboard />}
         />
 
-        <Route path="/orders" element={<ProtectedRoute role="supplier"><Order /></ProtectedRoute>} />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute role="supplier">
+              <Order />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/products" element={<ProtectedRoute role="supplier"><SupplierProducts /></ProtectedRoute>} />
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute role="supplier">
+              <SupplierProducts />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/products/add" element={<ProtectedRoute role="supplier"><AddProduct /></ProtectedRoute>} />
+        <Route
+          path="/products/add"
+          element={
+            <ProtectedRoute role="supplier">
+              <AddProduct />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/reports" element={<ProtectedRoute role="supplier"><SupplierReports /></ProtectedRoute>} />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute role="supplier">
+              <SupplierReports />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/settings" element={<ProtectedRoute role="supplier"><SupplierSettings /></ProtectedRoute>} />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute role="supplier">
+              <SupplierSettings />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/profile" element={<ProtectedRoute role="supplier"><SupplierProfile /></ProtectedRoute>} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute role="supplier">
+              <SupplierProfile />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ================= Store Pending ================= */}
 
@@ -129,7 +176,14 @@ export default function App() {
 
         {/* ================= Store ================= */}
 
-        <Route path="/store" element={<ProtectedRoute role="store"><StoreLayout /></ProtectedRoute>}>
+        <Route
+          path="/store"
+          element={
+            <ProtectedRoute role="store">
+              <StoreLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<StoreDashboard />} />
 
           <Route path="suppliers" element={<Suppliers />} />
@@ -152,7 +206,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute role="admin">
               <AdminLayout />
             </ProtectedRoute>
           }
