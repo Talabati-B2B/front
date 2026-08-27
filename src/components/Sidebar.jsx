@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   FiBarChart2,
@@ -6,10 +6,12 @@ import {
   FiChevronDown,
   FiClipboard,
   FiHome,
+  FiLogOut,
   FiSettings,
   FiUser,
 } from "react-icons/fi";
 import logo from "../assets/images/dachboard_Logo.svg";
+import { useAuth } from "../context/AuthContext";
 
 const supplierNavigation = [
   {
@@ -49,6 +51,15 @@ export default function DashboardSidebar({
   avatarSrc,
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    setProfileOpen(false);
+    navigate("/", { replace: true });
+  };
+
   return (
     <aside
       dir="rtl"
@@ -132,6 +143,15 @@ export default function DashboardSidebar({
               <FiSettings size={16} />
               <span>إعدادات الحساب</span>
             </NavLink>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex min-h-10 w-full items-center gap-3 rounded-md px-3 py-2 text-right text-[13px] font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <FiLogOut size={16} />
+              <span>تسجيل الخروج</span>
+            </button>
           </div>
         )}
       </div>

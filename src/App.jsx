@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -10,8 +11,6 @@ import Login from "./pages/auth/login/Login";
 import Register from "./pages/auth/register/Register";
 import ForgotPassword from "./pages/auth/forgot-password/ForgotPassword";
 import ResetPassword from "./pages/auth/reset-password/ResetPassword";
-import AccountStatusGate from "./components/auth/AccountStatusGate";
-import AccountRejected from "./pages/account-rejected/AccountRejected";
 
 // Supplier
 import SupplierDashboard from "./pages/supplier-dashboard/SupplierDashboard";
@@ -52,6 +51,36 @@ import AdminReports from "./pages/admin-reports/AdminReports";
 import AdminSettings from "./pages/admin-settings/AdminSettings";
 import AdminProfile from "./pages/admin-profile/AdminProfile";
 
+function ProtectedRoute({ role, children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (user.role !== role) {
+    if (user.role === "store") {
+      return <Navigate to="/store" replace />;
+    }
+
+    if (user.role === "supplier") {
+      return <Navigate to="/supplier-dashboard" replace />;
+    }
+
+    if (user.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -71,47 +100,34 @@ export default function App() {
 
       <Route path="/reset-password" element={<ResetPassword />} />
 
-      <Route path="/account-rejected" element={<AccountRejected />} />
-
       {/* ================= Supplier ================= */}
 
-      <Route
-        path="/supplier-dashboard"
-        element={
-          <AccountStatusGate role="supplier">
-            <SupplierDashboard />
-          </AccountStatusGate>
-        }
-      />
+      <Route path="/supplier-dashboard" element={<ProtectedRoute role="supplier"><SupplierDashboard /></ProtectedRoute>} />
 
       <Route
         path="/supplierpendingdashboard"
-        element={
-          <AccountStatusGate role="supplier" pendingOnly>
-            <SupplierPendingDashboard />
-          </AccountStatusGate>
-        }
+        element={<SupplierPendingDashboard />}
       />
 
-      <Route path="/orders" element={<AccountStatusGate role="supplier"><Order /></AccountStatusGate>} />
+      <Route path="/orders" element={<ProtectedRoute role="supplier"><Order /></ProtectedRoute>} />
 
-      <Route path="/products" element={<AccountStatusGate role="supplier"><SupplierProducts /></AccountStatusGate>} />
+      <Route path="/products" element={<ProtectedRoute role="supplier"><SupplierProducts /></ProtectedRoute>} />
 
-      <Route path="/products/add" element={<AccountStatusGate role="supplier"><AddProduct /></AccountStatusGate>} />
+      <Route path="/products/add" element={<ProtectedRoute role="supplier"><AddProduct /></ProtectedRoute>} />
 
-      <Route path="/reports" element={<AccountStatusGate role="supplier"><SupplierReports /></AccountStatusGate>} />
+      <Route path="/reports" element={<ProtectedRoute role="supplier"><SupplierReports /></ProtectedRoute>} />
 
-      <Route path="/settings" element={<AccountStatusGate role="supplier"><SupplierSettings /></AccountStatusGate>} />
+      <Route path="/settings" element={<ProtectedRoute role="supplier"><SupplierSettings /></ProtectedRoute>} />
 
-      <Route path="/profile" element={<AccountStatusGate role="supplier"><SupplierProfile /></AccountStatusGate>} />
+      <Route path="/profile" element={<ProtectedRoute role="supplier"><SupplierProfile /></ProtectedRoute>} />
 
       {/* ================= Store Pending ================= */}
 
-      <Route path="/store/pending" element={<AccountStatusGate role="store" pendingOnly><StorePending /></AccountStatusGate>} />
+      <Route path="/store/pending" element={<StorePending />} />
 
       {/* ================= Store ================= */}
 
-      <Route path="/store" element={<AccountStatusGate role="store"><StoreLayout /></AccountStatusGate>}>
+      <Route path="/store" element={<ProtectedRoute role="store"><StoreLayout /></ProtectedRoute>}>
         <Route index element={<StoreDashboard />} />
 
         <Route path="suppliers" element={<Suppliers />} />

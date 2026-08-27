@@ -65,6 +65,8 @@ export function AuthProvider({ children }) {
   const clearSession = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     setUser(null);
     setToken(null);
   };
