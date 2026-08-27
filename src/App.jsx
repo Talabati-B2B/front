@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import ChatWidget from "./components/chatbot/ChatWidget";
 
 
 
@@ -83,106 +84,111 @@ function ProtectedRoute({ role, children }) {
 
 export default function App() {
   return (
-    <Routes>
-      {/* ================= Landing ================= */}
+    <>
+      <Routes>
+        {/* ================= Landing ================= */}
 
-      <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
 
-      <Route path="/landing" element={<LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
 
-      {/* ================= Auth ================= */}
+        {/* ================= Auth ================= */}
 
-      <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login />} />
 
-      <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<Register />} />
 
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* ================= Supplier ================= */}
+        {/* ================= Supplier ================= */}
 
-      <Route path="/supplier-dashboard" element={<ProtectedRoute role="supplier"><SupplierDashboard /></ProtectedRoute>} />
+        <Route path="/supplier-dashboard" element={<ProtectedRoute role="supplier"><SupplierDashboard /></ProtectedRoute>} />
 
-      <Route
-        path="/supplierpendingdashboard"
-        element={<SupplierPendingDashboard />}
-      />
+        <Route
+          path="/supplierpendingdashboard"
+          element={<SupplierPendingDashboard />}
+        />
 
-      <Route path="/orders" element={<ProtectedRoute role="supplier"><Order /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute role="supplier"><Order /></ProtectedRoute>} />
 
-      <Route path="/products" element={<ProtectedRoute role="supplier"><SupplierProducts /></ProtectedRoute>} />
+        <Route path="/products" element={<ProtectedRoute role="supplier"><SupplierProducts /></ProtectedRoute>} />
 
-      <Route path="/products/add" element={<ProtectedRoute role="supplier"><AddProduct /></ProtectedRoute>} />
+        <Route path="/products/add" element={<ProtectedRoute role="supplier"><AddProduct /></ProtectedRoute>} />
 
-      <Route path="/reports" element={<ProtectedRoute role="supplier"><SupplierReports /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute role="supplier"><SupplierReports /></ProtectedRoute>} />
 
-      <Route path="/settings" element={<ProtectedRoute role="supplier"><SupplierSettings /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute role="supplier"><SupplierSettings /></ProtectedRoute>} />
 
-      <Route path="/profile" element={<ProtectedRoute role="supplier"><SupplierProfile /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute role="supplier"><SupplierProfile /></ProtectedRoute>} />
 
-      {/* ================= Store Pending ================= */}
+        {/* ================= Store Pending ================= */}
 
-      <Route path="/store/pending" element={<StorePending />} />
+        <Route path="/store/pending" element={<StorePending />} />
 
-      {/* ================= Store ================= */}
+        {/* ================= Store ================= */}
 
-      <Route path="/store" element={<ProtectedRoute role="store"><StoreLayout /></ProtectedRoute>}>
-        <Route index element={<StoreDashboard />} />
+        <Route path="/store" element={<ProtectedRoute role="store"><StoreLayout /></ProtectedRoute>}>
+          <Route index element={<StoreDashboard />} />
 
-        <Route path="suppliers" element={<Suppliers />} />
+          <Route path="suppliers" element={<Suppliers />} />
 
-        <Route path="products" element={<Products />} />
+          <Route path="products" element={<Products />} />
 
-        <Route path="cart" element={<Cart />} />
+          <Route path="cart" element={<Cart />} />
 
-        <Route path="orders" element={<Orders />} />
+          <Route path="orders" element={<Orders />} />
 
-        <Route path="reports" element={<Reports />} />
+          <Route path="reports" element={<Reports />} />
 
-        <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<Settings />} />
 
-        <Route path="profile" element={<Profile />} />
-      </Route>
+          <Route path="profile" element={<Profile />} />
+        </Route>
 
-      {/* ================= Admin ================= */}
+        {/* ================= Admin ================= */}
 
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
 
-        <Route path="orders" element={<AdminOrders />} />
+          <Route path="orders" element={<AdminOrders />} />
 
-        <Route path="invoices" element={<AdminInvoices />} />
+          <Route path="invoices" element={<AdminInvoices />} />
 
-        <Route path="regions" element={<AdminRegions />} />
+          <Route path="regions" element={<AdminRegions />} />
 
-        <Route path="account-review" element={<AdminAccountReview />} />
+          <Route path="account-review" element={<AdminAccountReview />} />
 
-        <Route path="activity" element={<AdminActivity />} />
+          <Route path="activity" element={<AdminActivity />} />
 
-        <Route path="users" element={<AdminUsers />} />
+          <Route path="users" element={<AdminUsers />} />
 
-        {/* User Management Details */}
-        <Route path="users/:id" element={<AdminUserDetails />} />
+          {/* User Management Details */}
+          <Route path="users/:id" element={<AdminUserDetails />} />
 
-        <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="notifications" element={<AdminNotifications />} />
 
-        <Route path="products" element={<AdminProducts />} />
+          <Route path="products" element={<AdminProducts />} />
 
-        <Route path="reports" element={<AdminReports />} />
+          <Route path="reports" element={<AdminReports />} />
 
-        <Route path="settings" element={<AdminSettings />} />
+          <Route path="settings" element={<AdminSettings />} />
 
-        {/* Admin Profile */}
-        <Route path="profile" element={<AdminProfile />} />
-      </Route>
-    </Routes>
+          {/* Admin Profile */}
+          <Route path="profile" element={<AdminProfile />} />
+        </Route>
+      </Routes>
+
+      {/* يُركّب مرة واحدة لكل الصفحات، ويخفي نفسه في لوحة الأدمن وصفحات المصادقة */}
+      <ChatWidget />
+    </>
   );
 }
