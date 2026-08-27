@@ -5,9 +5,10 @@
  * توكن Sanctum الخاص بالمستخدم في كل طلب، ولا يجوز أن يُرسل توكن جلسته
  * إلى Google.
  *
- * تنبيه: المفتاح يُقرأ من متغيّر VITE_ فيُحزَم داخل ملفات JS التي ينزّلها
- * المتصفح، أي أنه مكشوف لأي زائر. قيّد المفتاح بـ HTTP referrer من Google
- * Cloud Console. لنقل النداء لاحقاً إلى خادم وسيط يكفي تعديل هذا الملف وحده.
+ * تنبيه: المفتاح يُحقن وقت البناء عبر define في vite.config.js فيُحزَم داخل
+ * ملفات JS التي ينزّلها المتصفح، أي أنه مكشوف لأي زائر. قيّد المفتاح بـ HTTP
+ * referrer من Google Cloud Console. لنقل النداء لاحقاً إلى خادم وسيط يكفي
+ * تعديل هذا الملف وحده.
  */
 
 // نموذج الطبقة المجانية — يُغيَّر من هنا فقط.
@@ -17,7 +18,12 @@ const MODEL = "gemini-3.6-flash";
 
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
+/*
+ * ثابت يستبدله Vite نصياً وقت البناء بقيمة GEMINI_API_KEY. حارس typeof يمنع
+ * ReferenceError لو نُفِّذ الملف خارج بناء Vite (اختبارات مثلاً).
+ */
+const API_KEY =
+  typeof __GEMINI_API_KEY__ === "string" ? __GEMINI_API_KEY__ : "";
 
 // حدود تحمي الحصة المجانية من الاستنزاف.
 export const MAX_INPUT_LENGTH = 500;
@@ -70,7 +76,7 @@ function readErrorMessage(status) {
 export async function askGemini({ systemInstruction, messages, signal }) {
   if (!isChatbotConfigured()) {
     throw new Error(
-      "المساعد غير مُفعّل حالياً: مفتاح الخدمة غير مضبوط. أضف VITE_GEMINI_API_KEY في ملف .env.",
+      "المساعد غير مُفعّل حالياً: مفتاح الخدمة غير مضبوط. أضف GEMINI_API_KEY في ملف .env أو في متغيّرات البيئة على الاستضافة.",
     );
   }
 

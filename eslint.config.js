@@ -14,7 +14,8 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      // ثابت يحقنه Vite وقت البناء (define في vite.config.js).
+      globals: { ...globals.browser, __GEMINI_API_KEY__: 'readonly' },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
