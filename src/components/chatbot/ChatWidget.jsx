@@ -83,13 +83,13 @@ export default function ChatWidget() {
 
   return (
     /*
-     * items-start وليس items-end: الاتجاه rtl فبداية المحور المتقاطع هي
-     * اليمين الفيزيائي. مع items-end كان الزر يقفز لليسار حين تتسع الحاوية
-     * بعرض اللوحة المفتوحة.
+     * items-end وليس items-start: الاتجاه rtl فنهاية المحور المتقاطع هي
+     * اليسار الفيزيائي، وهو الحافة التي تثبّتها left-6. لولاها كان الزر
+     * يقفز يميناً حين تتسع الحاوية بعرض اللوحة المفتوحة.
      */
     <div
       dir="rtl"
-      className="fixed bottom-6 right-6 z-50 flex flex-col items-start gap-3"
+      className="fixed bottom-6 left-6 z-50 flex flex-col items-end gap-3"
     >
       {/*
        * إظهار وإخفاء شرطي مع animate-fadeIn من index.css بدل motion:
