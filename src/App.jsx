@@ -1,7 +1,7 @@
 import { Navigate, Routes, Route } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
-import ProtectedRoute from "./components/ProtectedRoute";
+
 
 // Landing
 import LandingPage from "./pages/landing-page/landingPage";
