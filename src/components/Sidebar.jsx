@@ -57,7 +57,7 @@ export default function DashboardSidebar({
   const handleLogout = () => {
     logout();
     setProfileOpen(false);
-    navigate("/", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
