@@ -11,12 +11,28 @@
  * تعديل هذا الملف وحده.
  */
 
-// نموذج الطبقة المجانية — يُغيَّر من هنا فقط.
-// ملاحظة: gemini-2.5-flash لم يعد متاحاً للحسابات الجديدة (تردّ Google بـ 404
-// موجّهة لهذا النموذج)، فإن ظهر خطأ NOT_FOUND مستقبلاً حدّث هذا السطر.
-const MODEL = "gemini-3.6-flash";
+/*
+ * نماذج الطبقة المجانية بالترتيب. الأول هو المفضّل، وما بعده احتياط يُجرَّب
+ * حين يفشل الذي قبله بسبب سحب النموذج (404) أو نفاد حصته (429) أو تعطّل
+ * الخدمة (5xx). الأخير اسم متحرّك تديره Google، فيبقى صالحاً حتى لو سُحب
+ * الاسمان المثبّتان فوقه.
+ */
+const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"];
 
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+/*
+ * النموذج الذي نجح آخر مرة. بعد أول تحويل نبدأ منه مباشرة بدل دفع ثمن نداء
+ * فاشل مع كل رسالة. يعود إلى الصفر مع كل إعادة تحميل للصفحة.
+ */
+let activeModelIndex = 0;
+
+function endpointFor(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+// أخطاء يُرجى أن يصلحها نموذج آخر: سُحب النموذج، أو نفدت حصته، أو تعطّل.
+function isModelFailure(status) {
+  return status === 404 || status === 429 || status >= 500;
+}
 
 /*
  * ثابت يستبدله Vite نصياً وقت البناء بقيمة GEMINI_API_KEY. حارس typeof يمنع
@@ -53,9 +69,9 @@ function readErrorMessage(status) {
     return "مفتاح الخدمة غير صالح أو غير مصرّح له. تواصل مع مسؤول الموقع.";
   }
 
-  // يحدث عادة حين يُسحب النموذج المضبوط في MODEL من الخدمة.
+  // نصل هنا بعد استنفاد كل النماذج، أي أن الأسماء في MODELS سُحبت كلها.
   if (status === 404) {
-    return "النموذج المستخدم غير متاح. حدّث قيمة MODEL في services/chatbot/gemini.js.";
+    return "النماذج المستخدمة غير متاحة. حدّث قائمة MODELS في services/chatbot/gemini.js.";
   }
 
   if (status === 429) {
@@ -70,7 +86,8 @@ function readErrorMessage(status) {
 }
 
 /*
- * يرسل المحادثة ويعيد نص الرد.
+ * يرسل المحادثة ويعيد نص الرد، ويتحوّل تلقائياً إلى النموذج التالي في MODELS
+ * حين يفشل الحالي فشلاً يُرجى أن يصلحه غيره.
  * يرمي Error برسالة عربية جاهزة للعرض.
  */
 export async function askGemini({ systemInstruction, messages, signal }) {
@@ -80,33 +97,59 @@ export async function askGemini({ systemInstruction, messages, signal }) {
     );
   }
 
-  let response;
+  const body = JSON.stringify({
+    system_instruction: { parts: [{ text: systemInstruction }] },
+    contents: toGeminiContents(messages),
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+    },
+  });
 
-  try {
-    response = await fetch(`${ENDPOINT}?key=${encodeURIComponent(API_KEY)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal,
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemInstruction }] },
-        contents: toGeminiContents(messages),
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+  let response = null;
+  let lastStatus = null;
+
+  // نبدأ من آخر نموذج ناجح وندور على البقية، فلا يُستبعد نموذج تعافى لاحقاً.
+  for (let attempt = 0; attempt < MODELS.length; attempt += 1) {
+    const index = (activeModelIndex + attempt) % MODELS.length;
+
+    let attemptResponse;
+
+    try {
+      attemptResponse = await fetch(
+        `${endpointFor(MODELS[index])}?key=${encodeURIComponent(API_KEY)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body,
         },
-      }),
-    });
-  } catch (error) {
-    // الإلغاء يُمرَّر كما هو ليتعامل معه المستدعي بصمت.
-    if (error?.name === "AbortError") throw error;
+      );
+    } catch (error) {
+      // الإلغاء يُمرَّر كما هو ليتعامل معه المستدعي بصمت.
+      if (error?.name === "AbortError") throw error;
 
-    throw new Error("تعذّر الاتصال بالخدمة، تحقق من اتصالك بالإنترنت.", {
-      cause: error,
-    });
+      // انقطاع الشبكة لا علاقة له بالنموذج، فتجريب غيره هدر للوقت.
+      throw new Error("تعذّر الاتصال بالخدمة، تحقق من اتصالك بالإنترنت.", {
+        cause: error,
+      });
+    }
+
+    if (attemptResponse.ok) {
+      // نثبّت الناجح فلا ندفع ثمن نداء فاشل مع كل رسالة تالية.
+      activeModelIndex = index;
+      response = attemptResponse;
+      break;
+    }
+
+    lastStatus = attemptResponse.status;
+
+    // 400 و403 خطأ في المفتاح نفسه، ولا يصلحه تبديل النموذج.
+    if (!isModelFailure(lastStatus)) break;
   }
 
-  if (!response.ok) {
-    throw new Error(readErrorMessage(response.status));
+  if (!response) {
+    throw new Error(readErrorMessage(lastStatus));
   }
 
   const data = await response.json();
