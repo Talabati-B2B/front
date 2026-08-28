@@ -10,7 +10,15 @@ import {
   FiShoppingBag,
   FiUploadCloud,
 } from "react-icons/fi";
-import { storeProfile as defaultStoreProfile } from "../../services/store/storeProfile.mock";
+const defaultStoreProfile = {
+  storeName: "",
+  ownerName: "",
+  email: "",
+  mobile: "",
+  storeLocation: "",
+  businessType: "",
+  avatarSrc: null,
+};
 
 function Field({
   label,

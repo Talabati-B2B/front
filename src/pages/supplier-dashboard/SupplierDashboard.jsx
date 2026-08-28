@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -16,6 +16,39 @@ import { MdLocalShipping, MdWarehouse } from "react-icons/md";
 
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
+import * as supplierOrderService from "../../services/supplier/orderService";
+import * as productService from "../../services/supplier/productService";
+import * as notificationService from "../../services/notificationService";
+
+const STATUS_LABELS = {
+  pending: "قيد الانتظار",
+  accepted: "تم القبول",
+  preparing: "قيد التجهيز",
+  shipped: "قيد التوصيل",
+  delivered: "تم التسليم",
+  canceled: "ملغي",
+  negotiating: "قيد التفاوض",
+  price_proposed: "عرض سعر",
+  cancellation_requested: "طلب إلغاء",
+};
+
+const STATUS_COLORS = {
+  pending: "bg-[#FFF0E5] text-[#B85B1B]",
+  accepted: "bg-[#E7F5FF] text-[#1E65A7]",
+  preparing: "bg-[#EAF8EF] text-[#16834B]",
+  shipped: "bg-[#E9F0FB] text-[#2761C3]",
+  delivered: "bg-[#DDF8E8] text-[#15803D]",
+  canceled: "bg-[#FDE8E8] text-[#C62828]",
+  negotiating: "bg-[#FFF8E1] text-[#F59E0B]",
+  price_proposed: "bg-[#EDF4FF] text-[#3578E5]",
+  cancellation_requested: "bg-[#FDE8E8] text-[#C62828]",
+};
+
+const NOTIF_STYLES = {
+  low_stock: { bg: "bg-[#FFF0F0]", iconBg: "bg-[#FFDCDD]", iconColor: "text-[#E5484D]", Icon: FiAlertTriangle },
+  new_order: { bg: "bg-[#EAF9F0]", iconBg: "bg-[#CFF5DC]", iconColor: "text-[#13A458]", Icon: FiShoppingCart },
+  default: { bg: "bg-[#EDF4FF]", iconBg: "bg-[#D8E8FF]", iconColor: "text-[#3578E5]", Icon: MdLocalShipping },
+};
 
 export default function SupplierDashboard() {
   const navigate = useNavigate();
@@ -24,167 +57,185 @@ export default function SupplierDashboard() {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
 
-  const itemsPerPage = 4;
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleViewAllNotifications = () => {
-    setShowAllNotifications(true);
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleNotificationDetails = (notification) => {
-    setSelectedNotification(notification);
-  };
+    async function load() {
+      setLoading(true);
+      try {
+        const [ordersRes, productsRes, notifsRes] = await Promise.allSettled([
+          supplierOrderService.fetchOrders({ per_page: 100 }),
+          productService.fetchProducts({ per_page: 100 }),
+          notificationService.fetchNotifications({ per_page: 10 }),
+        ]);
 
-  const handleViewAllOrders = () => {
-    navigate("/orders");
-  };
+        if (cancelled) return;
 
-  const handleCloseNotificationModal = () => {
-    setSelectedNotification(null);
-    setShowAllNotifications(false);
-  };
+        if (ordersRes.status === "fulfilled") {
+          const raw = ordersRes.value?.data || ordersRes.value || [];
+          setOrders(Array.isArray(raw) ? raw : []);
+        }
 
-  const notifications = [
-    {
-      id: 1,
-      type: "low-stock",
-      title: "منتجات منخفضة المخزون",
-      message: "لديك 12 منتجاً منخفض المخزون",
-    },
-    {
-      id: 2,
-      type: "new-orders",
-      title: "طلبات جديدة",
-      message: "لديك 8 طلبات جديدة لم تتم معالجتها",
-    },
-    {
-      id: 3,
-      type: "price-update",
-      title: "تحديث الأسعار",
-      message: "تم تحديث أسعار بعض المنتجات",
-    },
-  ];
+        if (productsRes.status === "fulfilled") {
+          const raw = productsRes.value?.data?.data || productsRes.value?.data || [];
+          setProducts(Array.isArray(raw) ? raw : []);
+        }
+
+        if (notifsRes.status === "fulfilled") {
+          const raw = notifsRes.value?.data || notifsRes.value || [];
+          setNotifications(Array.isArray(raw) ? raw : []);
+        }
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const totalOrders = orders.length;
+  const totalProducts = products.length;
+  const lowStockCount = products.filter(
+    (p) => (Number(p.stock ?? p.stock_quantity ?? 0)) <= 10
+  ).length;
+  const uniqueStores = useMemo(() => {
+    const names = new Set();
+    orders.forEach((o) => {
+      const name = o.store?.name || o.store?.company_name || o.store_name;
+      if (name) names.add(name);
+    });
+    return names.size;
+  }, [orders]);
+
+  const totalSales = useMemo(() => {
+    return orders
+      .filter((o) => o.status === "delivered")
+      .reduce((sum, o) => sum + Number(o.total_price || o.total || 0), 0);
+  }, [orders]);
 
   const stats = [
     {
       icon: <MdLocalShipping size={21} />,
       color: "bg-[#EDF2FA] text-[#062454]",
-      change: "+12%",
-      changeColor: "text-[#16A34A]",
       title: "إجمالي الطلبات",
-      value: "148",
+      value: loading ? "..." : String(totalOrders),
       valueColor: "text-[#062454]",
       accent: "border-r-[#DCE6F7]",
     },
     {
       icon: <MdWarehouse size={21} />,
       color: "bg-[#EAF8EF] text-[#16834B]",
-      change: "+8.4%",
-      changeColor: "text-[#16A34A]",
       title: "إجمالي المنتجات",
-      value: "2,450",
+      value: loading ? "..." : String(totalProducts),
       valueColor: "text-[#062454]",
       accent: "border-r-[#CDEFD8]",
     },
     {
       icon: <FiAlertTriangle size={20} />,
       color: "bg-[#FDECEC] text-[#E5484D]",
-      change: "-5%",
-      changeColor: "text-[#E5484D]",
       title: "منخفض المخزون",
-      value: "12 صنفاً",
+      value: loading ? "..." : `${lowStockCount} صنفاً`,
       valueColor: "text-[#C62828]",
       accent: "border-r-[#F2CDCD]",
     },
     {
       icon: <FiUsers size={21} />,
       color: "bg-[#EAF8EF] text-[#16834B]",
-      change: "+8.2%",
-      changeColor: "text-[#15803D]",
       title: "العملاء",
-      value: "856",
+      value: loading ? "..." : String(uniqueStores),
       valueColor: "text-[#062454]",
       accent: "border-r-transparent",
     },
   ];
 
-  const orders = [
-    {
-      id: "#ORD-9921",
-      name: "أسواق المزرعة",
-      date: "24 أكتوبر 2026",
-      status: "قيد الانتظار",
-      total: "1,240 ر.س",
-      statusColor: "bg-[#FFF0E5] text-[#B85B1B]",
-    },
-    {
-      id: "#ORD-9915",
-      name: "بيتني مول",
-      date: "22 أكتوبر 2026",
-      status: "قيد التوصيل",
-      total: "3,120 ر.س",
-      statusColor: "bg-[#E9F0FB] text-[#2761C3]",
-    },
-    {
-      id: "#ORD-9920",
-      name: "بقالة النجوم",
-      date: "23 أكتوبر 2026",
-      status: "تم القبول",
-      total: "850 ر.س",
-      statusColor: "bg-[#E7F5FF] text-[#1E65A7]",
-    },
-    {
-      id: "#ORD-9914",
-      name: "لاكاسا مول",
-      date: "21 أكتوبر 2026",
-      status: "قيد الانتظار",
-      total: "450 ر.س",
-      statusColor: "bg-[#FFF0E5] text-[#B85B1B]",
-    },
-    {
-      id: "#ORD-9913",
-      name: "سوبر ماركت الأمل",
-      date: "20 أكتوبر 2026",
-      status: "تم القبول",
-      total: "1,850 ر.س",
-      statusColor: "bg-[#E7F5FF] text-[#1E65A7]",
-    },
-    {
-      id: "#ORD-9912",
-      name: "متجر الوفاء",
-      date: "19 أكتوبر 2026",
-      status: "قيد التوصيل",
-      total: "2,140 ر.س",
-      statusColor: "bg-[#E9F0FB] text-[#2761C3]",
-    },
-    {
-      id: "#ORD-9911",
-      name: "ماركت المدينة",
-      date: "18 أكتوبر 2026",
-      status: "قيد الانتظار",
-      total: "980 ر.س",
-      statusColor: "bg-[#FFF0E5] text-[#B85B1B]",
-    },
-    {
-      id: "#ORD-9910",
-      name: "أسواق النخيل",
-      date: "17 أكتوبر 2026",
-      status: "تم القبول",
-      total: "1,460 ر.س",
-      statusColor: "bg-[#E7F5FF] text-[#1E65A7]",
-    },
-  ];
+  const itemsPerPage = 4;
 
-
+  const formattedOrders = useMemo(() => {
+    return orders
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .map((o) => ({
+        id: `#ORD-${o.id}`,
+        name: o.store?.name || o.store?.company_name || o.store_name || "متجر",
+        date: o.created_at
+          ? new Date(o.created_at).toLocaleDateString("ar-EG", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "",
+        status: STATUS_LABELS[o.status] || o.status,
+        statusColor: STATUS_COLORS[o.status] || "bg-[#F3F4F6] text-[#6B7280]",
+        total: `${Number(o.total_price || o.total || 0).toLocaleString()} ₪`,
+      }));
+  }, [orders]);
 
   const start = (page - 1) * itemsPerPage;
+  const currentOrders = formattedOrders.slice(start, start + itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(formattedOrders.length / itemsPerPage));
 
-  const currentOrders = orders.slice(start, start + itemsPerPage);
+  const displayNotifications = useMemo(() => {
+    return notifications.slice(0, 3).map((n) => {
+      const data = n.data || {};
+      let type = "default";
+      const msg = (data.message || data.title || "").toLowerCase();
+      if (msg.includes("مخزون") || msg.includes("stock")) type = "low_stock";
+      else if (msg.includes("طلب") || msg.includes("order")) type = "new_order";
 
-  const totalPages = Math.max(1, Math.ceil(orders.length / itemsPerPage));
+      return {
+        id: n.id,
+        type,
+        title: data.title || data.title_ar || "إشعار",
+        message: data.message || data.message_ar || data.body || "",
+      };
+    });
+  }, [notifications]);
 
-  const months = ["يونيو", "مايو", "أبريل", "مارس", "فبراير", "يناير"];
+  const monthlyData = useMemo(() => {
+    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+    const now = new Date();
+    const counts = {};
 
-  const values = [70, 85, 60, 55, 40, 50];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      counts[key] = { label: months[d.getMonth()], count: 0 };
+    }
+
+    orders.forEach((o) => {
+      if (!o.created_at) return;
+      const d = new Date(o.created_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (counts[key]) counts[key].count++;
+    });
+
+    const entries = Object.values(counts);
+    const maxCount = Math.max(...entries.map((e) => e.count), 1);
+    return entries.map((e) => ({
+      label: e.label,
+      value: Math.round((e.count / maxCount) * 100),
+      count: e.count,
+    }));
+  }, [orders]);
+
+  const pendingOrders = orders.filter((o) => o.status === "pending").length;
+  const growthLabel = totalOrders > 0 ? `${pendingOrders} طلب جديد` : "لا توجد طلبات";
+
+  const handleViewAllNotifications = () => setShowAllNotifications(true);
+  const handleNotificationDetails = (notification) => setSelectedNotification(notification);
+  const handleViewAllOrders = () => navigate("/orders");
+  const handleCloseNotificationModal = () => {
+    setSelectedNotification(null);
+    setShowAllNotifications(false);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F5F5]" dir="rtl">
@@ -222,12 +273,6 @@ export default function SupplierDashboard() {
                     >
                       {stat.icon}
                     </div>
-
-                    <p
-                      className={`pt-1 text-[11px] font-semibold leading-5 ${stat.changeColor}`}
-                    >
-                      {stat.change} عن الشهر السابق
-                    </p>
                   </div>
 
                   <div className="mt-3">
@@ -275,117 +320,119 @@ export default function SupplierDashboard() {
                   <table className="w-full text-sm" dir="rtl">
                     <thead>
                       <tr className="bg-[#062454] text-[12px] font-semibold text-white">
-                        <th className="px-4 py-[18px] text-center">
-                          رقم الطلب
-                        </th>
-
-                        <th className="px-4 py-[18px] text-center">
-                          اسم المتجر
-                        </th>
-
+                        <th className="px-4 py-[18px] text-center">رقم الطلب</th>
+                        <th className="px-4 py-[18px] text-center">اسم المتجر</th>
                         <th className="px-4 py-4.5 text-center">التاريخ</th>
-
                         <th className="px-4 py-4.5 text-center">الحالة</th>
-
                         <th className="px-4 py-4.5 text-center">الإجمالي</th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      {currentOrders.map((order) => (
-                        <tr
-                          key={order.id}
-                          className="border-b border-[#E7E9ED] last:border-b-0"
-                        >
-                          <td
-                            className="px-4 py-[14px] text-center text-[13px] font-bold text-[#062454]"
-                            dir="ltr"
-                          >
-                            {order.id}
-                          </td>
-
-                          <td className="px-4 py-[14px] text-center text-[13px] font-medium text-[#24262B]">
-                            {order.name}
-                          </td>
-
-                          <td className="px-4 py-[14px] text-center text-[12px] text-[#5F6470]">
-                            {order.date}
-                          </td>
-
-                          <td className="px-4 py-[14px] text-center">
-                            <span
-                              className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-[12px] font-medium ${order.statusColor}`}
-                            >
-                              {order.status}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-[14px] text-center text-[13px] font-semibold text-[#16181D]">
-                            {order.total}
+                      {loading ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-sm text-[#64748B]">
+                            جاري تحميل الطلبات...
                           </td>
                         </tr>
-                      ))}
+                      ) : currentOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-sm text-[#64748B]">
+                            لا توجد طلبات حتى الآن.
+                          </td>
+                        </tr>
+                      ) : (
+                        currentOrders.map((order) => (
+                          <tr
+                            key={order.id}
+                            className="border-b border-[#E7E9ED] last:border-b-0"
+                          >
+                            <td
+                              className="px-4 py-[14px] text-center text-[13px] font-bold text-[#062454]"
+                              dir="ltr"
+                            >
+                              {order.id}
+                            </td>
+
+                            <td className="px-4 py-[14px] text-center text-[13px] font-medium text-[#24262B]">
+                              {order.name}
+                            </td>
+
+                            <td className="px-4 py-[14px] text-center text-[12px] text-[#5F6470]">
+                              {order.date}
+                            </td>
+
+                            <td className="px-4 py-[14px] text-center">
+                              <span
+                                className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-[12px] font-medium ${order.statusColor}`}
+                              >
+                                {order.status}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-[14px] text-center text-[13px] font-semibold text-[#16181D]">
+                              {order.total}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
                 {/* SIMPLE PAGINATION */}
-                <div
-                  className="flex min-h-[64px] items-center justify-between border-t border-[#E7E9ED] px-5 py-3"
-                  dir="ltr"
-                >
-                  <div className="flex items-center gap-2">
-                    {/* PREVIOUS */}
-                    <button
-                      type="button"
-                      onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={page === 1}
-                      aria-label="الصفحة السابقة"
-                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D8DDE6] bg-white text-[#697181] transition-colors hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <FiChevronLeft size={16} />
-                    </button>
+                {formattedOrders.length > 0 && (
+                  <div
+                    className="flex min-h-[64px] items-center justify-between border-t border-[#E7E9ED] px-5 py-3"
+                    dir="ltr"
+                  >
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={page === 1}
+                        aria-label="الصفحة السابقة"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D8DDE6] bg-white text-[#697181] transition-colors hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <FiChevronLeft size={16} />
+                      </button>
 
-                    {/* PAGE NUMBERS */}
-                    {Array.from({ length: totalPages }, (_, index) => {
-                      const pageNumber = index + 1;
+                      {Array.from({ length: totalPages }, (_, index) => {
+                        const pageNumber = index + 1;
+                        return (
+                          <button
+                            key={pageNumber}
+                            type="button"
+                            onClick={() => setPage(pageNumber)}
+                            className={`flex h-10 min-w-10 items-center justify-center rounded-lg border text-[13px] font-semibold transition-colors ${
+                              page === pageNumber
+                                ? "border-[#2F248B] bg-[#2F248B] text-white"
+                                : "border-[#D8DDE6] bg-white text-[#697181] hover:bg-[#F7F8FA]"
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      })}
 
-                      return (
-                        <button
-                          key={pageNumber}
-                          type="button"
-                          onClick={() => setPage(pageNumber)}
-                          className={`flex h-10 min-w-10 items-center justify-center rounded-lg border text-[13px] font-semibold transition-colors ${
-                            page === pageNumber
-                              ? "border-[#2F248B] bg-[#2F248B] text-white"
-                              : "border-[#D8DDE6] bg-white text-[#697181] hover:bg-[#F7F8FA]"
-                          }`}
-                        >
-                          {pageNumber}
-                        </button>
-                      );
-                    })}
+                      <button
+                        type="button"
+                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={page === totalPages}
+                        aria-label="الصفحة التالية"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D8DDE6] bg-white text-[#697181] transition-colors hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <FiChevronRight size={16} />
+                      </button>
+                    </div>
 
-                    {/* NEXT */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                      disabled={page === totalPages}
-                      aria-label="الصفحة التالية"
-                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D8DDE6] bg-white text-[#697181] transition-colors hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <FiChevronRight size={16} />
-                    </button>
+                    <span className="text-[12px] text-[#596579]" dir="rtl">
+                      عرض {start + 1}-
+                      {Math.min(start + itemsPerPage, formattedOrders.length)} من{" "}
+                      {formattedOrders.length} طلب
+                    </span>
                   </div>
-
-                  <span className="text-[12px] text-[#596579]" dir="rtl">
-                    عرض {start + 1}-
-                    {Math.min(start + itemsPerPage, orders.length)} من{" "}
-                    {orders.length} طلب
-                  </span>
-                </div>
+                )}
               </article>
 
               {/* NOTIFICATIONS */}
@@ -396,98 +443,61 @@ export default function SupplierDashboard() {
                 <div className="flex min-h-[60px] items-center justify-between px-5">
                   <div className="flex items-center gap-2.5">
                     <FiBell size={18} className="text-[#7D8798]" />
-
                     <h2 className="text-[16px] font-bold text-[#16213A]">
                       تنبيهات النظام
                     </h2>
                   </div>
 
                   <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#EA1111] px-1.5 text-[11px] font-bold text-white">
-                    {notifications.length}
+                    {displayNotifications.length}
                   </span>
                 </div>
 
                 <div className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-1">
-                  {/* LOW STOCK */}
-                  <div className="flex min-h-[84px] items-start gap-3 rounded-[10px] bg-[#FFF0F0] px-3.5 py-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FFDCDD] text-[#E5484D]">
-                      <FiAlertTriangle size={17} />
+                  {loading ? (
+                    <div className="flex flex-1 items-center justify-center text-sm text-[#64748B]">
+                      جاري تحميل التنبيهات...
                     </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold leading-5 text-[#2D3036]">
-                        منتجات منخفضة المخزون
-                      </p>
-
-                      <p className="mt-0.5 text-[10px] font-medium leading-4 text-[#7B8493]">
-                        لديك 12 منتجاً منخفض المخزون
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleNotificationDetails(notifications[0])
-                        }
-                        className="mt-1.5 text-[11px] font-bold text-[#2463E8]"
-                      >
-                        عرض التفاصيل
-                      </button>
+                  ) : displayNotifications.length === 0 ? (
+                    <div className="flex flex-1 items-center justify-center text-sm text-[#64748B]">
+                      لا توجد تنبيهات حالياً
                     </div>
-                  </div>
+                  ) : (
+                    displayNotifications.map((notif) => {
+                      const style = NOTIF_STYLES[notif.type] || NOTIF_STYLES.default;
+                      const { Icon } = style;
+                      return (
+                        <div
+                          key={notif.id}
+                          className={`flex min-h-[84px] items-start gap-3 rounded-[10px] ${style.bg} px-3.5 py-3`}
+                        >
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${style.iconBg} ${style.iconColor}`}
+                          >
+                            <Icon size={17} />
+                          </div>
 
-                  {/* NEW ORDERS */}
-                  <div className="flex min-h-[84px] items-start gap-3 rounded-[10px] bg-[#EAF9F0] px-3.5 py-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#CFF5DC] text-[#13A458]">
-                      <FiShoppingCart size={17} />
-                    </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-bold leading-5 text-[#2D3036]">
+                              {notif.title}
+                            </p>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold leading-5 text-[#2D3036]">
-                        طلبات جديدة
-                      </p>
+                            <p className="mt-0.5 text-[10px] font-medium leading-4 text-[#7B8493]">
+                              {notif.message}
+                            </p>
 
-                      <p className="mt-0.5 text-[10px] font-medium leading-4 text-[#7B8493]">
-                        لديك 8 طلبات جديدة لم تتم معالجتها
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleNotificationDetails(notifications[1])
-                        }
-                        className="mt-1.5 text-[11px] font-bold text-[#2463E8]"
-                      >
-                        عرض التفاصيل
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* PRICE UPDATE */}
-                  <div className="flex min-h-[84px] items-start gap-3 rounded-[10px] bg-[#EDF4FF] px-3.5 py-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D8E8FF] text-[#3578E5]">
-                      <MdLocalShipping size={18} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold leading-5 text-[#2D3036]">
-                        تحديث الأسعار
-                      </p>
-
-                      <p className="mt-0.5 text-[10px] font-medium leading-4 text-[#7B8493]">
-                        تم تحديث أسعار بعض المنتجات
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleNotificationDetails(notifications[2])
-                        }
-                        className="mt-1.5 text-[11px] font-bold text-[#2463E8]"
-                      >
-                        عرض التفاصيل
-                      </button>
-                    </div>
-                  </div>
+                            <button
+                              type="button"
+                              onClick={() => handleNotificationDetails(notif)}
+                              className="mt-1.5 text-[11px] font-bold text-[#2463E8]"
+                            >
+                              عرض التفاصيل
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
 
                 <button
@@ -522,20 +532,18 @@ export default function SupplierDashboard() {
 
                 <div className="flex min-w-0" dir="rtl">
                   <div className="flex h-[255px] shrink-0 flex-col justify-between pr-2 text-[10px] text-[#98A3B3]">
-                    <span>300</span>
-                    <span>225</span>
-                    <span>150</span>
-                    <span>75</span>
-                    <span>0</span>
+                    {(() => {
+                      const maxVal = Math.max(...monthlyData.map((m) => m.count), 1);
+                      return [maxVal, Math.round(maxVal * 0.75), Math.round(maxVal * 0.5), Math.round(maxVal * 0.25), 0].map((v) => (
+                        <span key={v}>{v}</span>
+                      ));
+                    })()}
                   </div>
 
                   <div className="relative h-[255px] min-w-0 flex-1">
                     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
                       {[0, 1, 2, 3, 4].map((line) => (
-                        <div
-                          key={line}
-                          className="w-full border-t border-[#E8EDF4]"
-                        />
+                        <div key={line} className="w-full border-t border-[#E8EDF4]" />
                       ))}
                     </div>
 
@@ -543,32 +551,28 @@ export default function SupplierDashboard() {
                       className="relative flex h-full items-end justify-between gap-3 px-3"
                       dir="ltr"
                     >
-                      {values.map((value, index) => {
-                        const isMax = value === Math.max(...values);
-
+                      {monthlyData.map((item) => {
+                        const isMax = item.value === Math.max(...monthlyData.map((m) => m.value));
                         return (
                           <div
-                            key={months[index]}
+                            key={item.label}
                             className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
                           >
                             <div
                               className={`w-full max-w-[58px] rounded-t-[8px] ${
                                 isMax
                                   ? "bg-[#2364E8]"
-                                  : value <= 45
+                                  : item.value <= 45
                                     ? "bg-[#5D93ED]"
                                     : "bg-[#3D7DEB]"
                               }`}
-                              style={{
-                                height: `${value}%`,
-                              }}
+                              style={{ height: `${Math.max(item.value, 2)}%` }}
                             />
-
                             <p
                               className="mt-3 text-[11px] font-medium text-[#455269]"
                               dir="rtl"
                             >
-                              {months[index]}
+                              {item.label}
                             </p>
                           </div>
                         );
@@ -588,14 +592,14 @@ export default function SupplierDashboard() {
                     </p>
 
                     <h3 className="mt-1 text-[20px] font-bold text-[#16213A]">
-                      18,450{" "}
+                      {loading ? "..." : totalSales.toLocaleString()}{" "}
                       <span className="text-[12px] font-medium text-[#5F6672]">
                         شيكل
                       </span>
                     </h3>
 
                     <p className="mt-2 text-[11px] font-semibold text-[#16A34A]">
-                      +12% عن الشهر السابق
+                      من الطلبات المكتملة
                     </p>
                   </div>
 
@@ -609,11 +613,11 @@ export default function SupplierDashboard() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[14px] font-bold text-[#283247]">
-                        معدل نمو الطلبات
+                        طلبات جديدة بانتظار المعالجة
                       </p>
 
                       <p className="mt-4 text-[27px] font-bold text-[#16213A]">
-                        +12%
+                        {loading ? "..." : growthLabel}
                       </p>
                     </div>
 
@@ -623,11 +627,20 @@ export default function SupplierDashboard() {
                   </div>
 
                   <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#EEF2F7]">
-                    <div className="h-full w-3/4 rounded-full bg-[#2463E8]" />
+                    <div
+                      className="h-full rounded-full bg-[#2463E8]"
+                      style={{
+                        width: totalOrders > 0
+                          ? `${Math.min(Math.round((pendingOrders / totalOrders) * 100), 100)}%`
+                          : "0%",
+                      }}
+                    />
                   </div>
 
                   <p className="mt-2 text-center text-[10px] text-[#A1A9B5]">
-                    نمو في عدد الطلبات
+                    {totalOrders > 0
+                      ? `${pendingOrders} من ${totalOrders} طلب بانتظار المعالجة`
+                      : "لا توجد طلبات بعد"}
                   </p>
                 </article>
               </div>
@@ -669,20 +682,27 @@ export default function SupplierDashboard() {
                 </h3>
 
                 <div className="space-y-3">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className="border-b border-[#E5E7EB] pb-3 last:border-b-0 last:pb-0"
-                    >
-                      <p className="text-[14px] font-semibold leading-5">
-                        {notification.title}
-                      </p>
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-[#64748B]">لا توجد تنبيهات</p>
+                  ) : (
+                    notifications.map((n) => {
+                      const data = n.data || {};
+                      return (
+                        <div
+                          key={n.id}
+                          className="border-b border-[#E5E7EB] pb-3 last:border-b-0 last:pb-0"
+                        >
+                          <p className="text-[14px] font-semibold leading-5">
+                            {data.title || data.title_ar || "إشعار"}
+                          </p>
 
-                      <span className="text-[12px] leading-4 text-[#64748B]">
-                        {notification.message}
-                      </span>
-                    </div>
-                  ))}
+                          <span className="text-[12px] leading-4 text-[#64748B]">
+                            {data.message || data.message_ar || data.body || ""}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </>
             )}

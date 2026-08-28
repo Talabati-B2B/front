@@ -15,16 +15,27 @@ import {
   FiPhone,
   FiX,
 } from "react-icons/fi";
-import { storeProfile as defaultStoreProfile } from "../../services/store/storeProfile.mock";
+const emptyProfile = {
+  storeName: "",
+  ownerName: "",
+  email: "",
+  mobile: "",
+  whatsapp: "",
+  storeLocation: "",
+  bio: "",
+  avatarSrc: null,
+  officialDocuments: [],
+  verificationDocuments: [],
+};
 
 function mergeProfile(profile) {
   return {
-    ...defaultStoreProfile,
+    ...emptyProfile,
     ...profile,
     officialDocuments:
-      profile?.officialDocuments ?? defaultStoreProfile.officialDocuments,
+      profile?.officialDocuments ?? emptyProfile.officialDocuments,
     verificationDocuments:
-      profile?.verificationDocuments ?? defaultStoreProfile.verificationDocuments,
+      profile?.verificationDocuments ?? emptyProfile.verificationDocuments,
   };
 }
 

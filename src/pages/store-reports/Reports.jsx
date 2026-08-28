@@ -7,12 +7,31 @@ import {
   FiShoppingBag,
   FiTruck,
 } from "react-icons/fi";
-import {
-  expenseDistribution,
-  monthlyPurchases,
-  storeReportsOverview,
-  topStoreSuppliers,
-} from "../../services/store/storeReports.mock";
+const storeReportsOverview = {
+  totalPurchases: { label: "إجمالي المشتريات", value: 0, currency: "₪", comparison: "" },
+  completedOrders: { label: "الطلبات المكتملة", value: 0, helper: "عبر جميع القنوات" },
+  achievedSavings: { label: "التوفير المحقق", value: 0, currency: "₪", helper: "" },
+  activeSuppliers: { label: "الموردون النشطون", value: 0, helper: "موردون معتمدون حالياً" },
+};
+
+const monthlyPurchases = [
+  { month: "Jan", value: 0 },
+  { month: "Feb", value: 0 },
+  { month: "Mar", value: 0 },
+  { month: "Apr", value: 0 },
+  { month: "May", value: 0 },
+  { month: "Jun", value: 0 },
+  { month: "Jul", value: 0 },
+];
+
+const expenseDistribution = [
+  { id: "food", label: "مواد غذائية", percentage: 0 },
+  { id: "drinks", label: "مشروبات", percentage: 0 },
+  { id: "cleaning", label: "منظفات", percentage: 0 },
+  { id: "other", label: "أخرى", percentage: 0 },
+];
+
+const topStoreSuppliers = [];
 
 const summaryCards = [
   {

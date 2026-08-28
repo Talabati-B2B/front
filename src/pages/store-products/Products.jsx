@@ -18,11 +18,32 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
-import {
-  storeProductCategories,
-  storeProductSummary,
-  storeStockStatuses,
-} from "../../services/store/storeProducts.mock";
+import { assetUrl } from "../../utils/assetUrl";
+
+function normalizeProduct(p) {
+  const price = parseFloat(p.sale_price || p.price || 0);
+  const stock = p.stock_quantity ?? p.availableQuantity ?? 0;
+  const supplierName = typeof p.supplier === "string" ? p.supplier : (p.supplier?.company_name || "");
+  const categoryName = typeof p.category === "string" ? p.category : (p.category?.name || "");
+  const imageSrc = typeof p.image === "string" ? p.image : assetUrl(p.image?.path);
+  const unitName = typeof p.unit === "string" ? p.unit : (p.unit?.name || "");
+  let stockStatus = "متوفر";
+  if (stock <= 0) stockStatus = "نفذ المخزون";
+  else if (stock <= 10) stockStatus = "مخزون منخفض";
+  return {
+    ...p,
+    price,
+    availableQuantity: stock,
+    supplier: supplierName,
+    category: categoryName,
+    image: imageSrc,
+    stockUnit: unitName,
+    stockStatus,
+    sku: p.sku || `P-${p.id}`,
+  };
+}
+
+const storeStockStatuses = ["متوفر", "مخزون منخفض", "نفذ المخزون"];
 
 const PRODUCTS_PER_PAGE = 10;
 
@@ -306,12 +327,32 @@ function PageButton({
 function ProductsContent({ initialSearchTerm = "" }) {
   const {
     searchValue: topbarSearchValue = "",
-    products = [],
+    products: rawProducts = [],
     cartItems = [],
     addToCart,
     updateCartItemQuantity,
     removeCartItem,
   } = useOutletContext() ?? {};
+
+  const products = useMemo(() => rawProducts.map(normalizeProduct), [rawProducts]);
+
+  const storeProductCategories = useMemo(() => {
+    const cats = new Set(products.map((p) => p.category).filter(Boolean));
+    return Array.from(cats);
+  }, [products]);
+
+  const storeProductSummary = useMemo(() => {
+    const total = products.length;
+    const inStock = products.filter((p) => p.stockStatus === "متوفر").length;
+    const outOfStock = products.filter((p) => p.stockStatus === "نفذ المخزون").length;
+    return [
+      { id: "products", label: "إجمالي المنتجات", value: total, tone: "navy" },
+      { id: "purchases", label: "منتجات متوفرة", value: inStock, tone: "green" },
+      { id: "out-of-stock", label: "نفذ المخزون", value: outOfStock, tone: "orange" },
+      { id: "popular", label: "الفئات", value: storeProductCategories.length, tone: "cyan" },
+    ];
+  }, [products, storeProductCategories]);
+
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockStatusFilter, setStockStatusFilter] = useState("");
@@ -595,7 +636,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
                   ) : (
                     paginatedProducts.map((product) => {
                       const cartItem = cartItems.find(
-                        (item) => item.id === product.id,
+                        (item) => String(item.productId) === String(product.id),
                       );
                       const outOfStock = product.stockStatus === "نفذ المخزون";
 

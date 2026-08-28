@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiCamera,
   FiCheckCircle,
@@ -12,10 +12,8 @@ import {
 } from "react-icons/fi";
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
-import {
-  readSupplierProfileMock,
-  saveSupplierProfileMock,
-} from "../../services/supplier/supplierProfile.mock";
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../services/api";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9\s()-]{7,20}$/;
@@ -122,14 +120,65 @@ function DocumentCard({ document, onView }) {
   );
 }
 
+function buildProfile(userData) {
+  const u = userData || {};
+  const supplier = u.supplier || {};
+  return {
+    firstName: u.first_name || "",
+    lastName: u.last_name || "",
+    ownerName: [u.first_name, u.last_name].filter(Boolean).join(" "),
+    email: u.email || "",
+    mobile: u.mobile || "",
+    phone: u.phone || "",
+    whatsapp: u.whatsapp || "",
+    idNumber: u.ID_number || "",
+    companyName: supplier.company_name || "",
+    companyLocation: supplier.company_location || "",
+    accountStatus: u.status || "",
+    avatarSrc: u.avatar_url || null,
+    officialDocuments: [
+      { id: 1, name: "الهوية الشخصية", status: u.personal_identity ? "تم الرفع" : "لم يتم الرفع", fileName: u.personal_identity },
+    ],
+  };
+}
+
 export default function SupplierProfile() {
-  const initialProfile = useMemo(() => readSupplierProfileMock(), []);
-  const [savedProfile, setSavedProfile] = useState(initialProfile);
-  const [form, setForm] = useState(initialProfile);
+  const { user, refreshUser } = useAuth();
+  const [profileData, setProfileData] = useState(() => buildProfile(user));
+  const [savedProfile, setSavedProfile] = useState(() => buildProfile(user));
+  const [form, setForm] = useState(() => buildProfile(user));
   const [errors, setErrors] = useState({});
   const [saveMessage, setSaveMessage] = useState("");
+  const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const avatarInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await api.get("/api/user/profile");
+        const u = res.data?.data?.user || res.data?.user || {};
+        if (!cancelled) {
+          const p = buildProfile(u);
+          setProfileData(p);
+          setSavedProfile(p);
+          setForm(p);
+        }
+      } catch {
+        const p = buildProfile(user);
+        if (!cancelled) {
+          setProfileData(p);
+          setSavedProfile(p);
+          setForm(p);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   const hasChanges = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedProfile),
@@ -176,35 +225,36 @@ export default function SupplierProfile() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) {
       setSaveMessage("");
       return;
     }
 
-    const firstName = form.firstName.trim();
-    const lastName = form.lastName.trim();
+    setSaveMessage("");
+    try {
+      const payload = {
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        mobile: form.mobile.trim(),
+        phone: form.phone?.trim() || null,
+        whatsapp: form.whatsapp?.trim() || "",
+        ID_number: form.idNumber?.trim() || "",
+        company_name: form.companyName.trim(),
+        company_location: form.companyLocation.trim(),
+      };
 
-    const nextProfile = {
-      ...form,
-      firstName,
-      lastName,
-      ownerName: `${firstName} ${lastName}`.trim(),
-      email: form.email.trim(),
-      mobile: form.mobile.trim(),
-      whatsapp: form.whatsapp?.trim() ?? "",
-      jobTitle: form.jobTitle?.trim() ?? "",
-      companyName: form.companyName.trim(),
-      businessType: form.businessType.trim(),
-      companyLocation: form.companyLocation.trim(),
-      bio: form.bio?.trim() ?? "",
-      services: form.services?.trim() ?? "",
-    };
-
-    saveSupplierProfileMock(nextProfile);
-    setSavedProfile(nextProfile);
-    setForm(nextProfile);
-    setSaveMessage("تم حفظ التعديلات محلياً بنجاح.");
+      const res = await api.put("/api/user/profile/update", payload);
+      const u = res.data?.user || {};
+      const p = buildProfile(u);
+      setSavedProfile(p);
+      setForm(p);
+      setSaveMessage("تم حفظ التعديلات بنجاح.");
+      refreshUser();
+    } catch (err) {
+      const msg = err.response?.data?.message || "فشل حفظ التعديلات";
+      setSaveMessage(msg);
+    }
   };
 
   const handleCancel = () => {
@@ -348,22 +398,13 @@ export default function SupplierProfile() {
                     error={errors.lastName}
                   />
 
-                  <div className="md:col-span-2">
-                    <Field
-                      label="المسمى الوظيفي / Position"
-                      name="jobTitle"
-                      value={form.jobTitle}
-                      onChange={handleChange}
-                      icon={FiUser}
-                    />
-                  </div>
-
-                  <SelectField
-                    label="الدولة"
-                    name="country"
-                    value={form.country}
+                  <Field
+                    label="رقم الهوية"
+                    name="idNumber"
+                    value={form.idNumber}
                     onChange={handleChange}
-                    options={["دولة فلسطين"]}
+                    icon={FiUser}
+                    dir="ltr"
                   />
 
                   <Field
@@ -384,13 +425,21 @@ export default function SupplierProfile() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Field
-                    label="رقم الهاتف"
+                    label="رقم الجوال"
                     name="mobile"
                     value={form.mobile}
                     onChange={handleChange}
                     required
                     icon={FiPhone}
                     error={errors.mobile}
+                    dir="ltr"
+                  />
+                  <Field
+                    label="رقم الهاتف الأرضي"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    icon={FiPhone}
                     dir="ltr"
                   />
                   <Field
@@ -434,25 +483,15 @@ export default function SupplierProfile() {
                     required
                     error={errors.companyName}
                   />
-                  <SelectField
-                    label="نوع النشاط التجاري"
-                    name="businessType"
-                    value={form.businessType}
+                  <Field
+                    label="موقع الشركة"
+                    name="companyLocation"
+                    value={form.companyLocation}
                     onChange={handleChange}
-                    options={["تجارة عامة", "مواد غذائية", "منظفات", "مشروبات", "تغليف"]}
+                    required
+                    icon={FiMapPin}
+                    error={errors.companyLocation}
                   />
-
-                  <div className="md:col-span-2">
-                    <Field
-                      label="موقع الشركة"
-                      name="companyLocation"
-                      value={form.companyLocation}
-                      onChange={handleChange}
-                      required
-                      icon={FiMapPin}
-                      error={errors.companyLocation}
-                    />
-                  </div>
                 </div>
               </article>
 
@@ -474,39 +513,6 @@ export default function SupplierProfile() {
                     </div>
                   ))}
                 </div>
-              </article>
-
-              {/* About company */}
-              <article className="rounded-xl border border-[#E2E6EB] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.03)] sm:p-5">
-                <h3 className="mb-4 text-[15px] font-bold text-[#193A67]">
-                  نبذة عن الشركة
-                </h3>
-
-                <label className="block">
-                  <span className="mb-2 block text-[11px] font-semibold text-[#303846]">
-                    المعلومات الأساسية
-                  </span>
-                  <textarea
-                    name="bio"
-                    value={form.bio ?? ""}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full resize-none rounded-lg border border-[#E1E5EA] bg-[#FAFBFC] px-3 py-3 text-[12px] leading-6 text-[#344054] outline-none transition focus:border-[#6EA8DE] focus:bg-white focus:ring-2 focus:ring-[#1D73C9]/10"
-                  />
-                </label>
-
-                <label className="mt-4 block">
-                  <span className="mb-2 block text-[11px] font-semibold text-[#303846]">
-                    المنتجات والخدمات الرئيسية
-                  </span>
-                  <input
-                    type="text"
-                    name="services"
-                    value={form.services ?? ""}
-                    onChange={handleChange}
-                    className="h-11 w-full rounded-lg border border-[#E1E5EA] bg-[#FAFBFC] px-3 text-[12px] text-[#344054] outline-none transition focus:border-[#6EA8DE] focus:bg-white focus:ring-2 focus:ring-[#1D73C9]/10"
-                  />
-                </label>
               </article>
 
               <footer className="flex flex-col gap-3 px-1 pt-4 text-[9px] text-[#9AA0AA] sm:flex-row sm:items-center sm:justify-between">

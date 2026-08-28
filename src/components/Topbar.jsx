@@ -3,12 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FiBell, FiSearch, FiUser } from "react-icons/fi";
 import { FaGlobe, FaRegMoon } from "react-icons/fa";
 import defaultAvatar from "../assets/images/supplierProfile.svg";
-import { readSupplierProfileMock } from "../services/supplier/supplierProfile.mock";
-import {
-  readSupplierTopbarNotificationsMock,
-  saveSupplierTopbarNotificationsMock,
-  supplierTopbarSearchItems,
-} from "../services/supplier/supplierTopbar.mock";
+import { useAuth } from "../context/AuthContext";
+import * as notificationService from "../services/notificationService";
 
 export default function Topbar({
   title = "ملف الشخصي",
@@ -16,7 +12,7 @@ export default function Topbar({
   searchPlaceholder = "البحث عن طلبات، منتجات، أو عملاء...",
   searchValue,
   onSearchChange,
-  searchItems = supplierTopbarSearchItems,
+  searchItems = [],
   onSearchResultSelect,
   supplierName,
   supplierRole,
@@ -34,25 +30,23 @@ export default function Topbar({
   profileHasChanges = false,
 }) {
   const navigate = useNavigate();
-  const savedProfile = readSupplierProfileMock();
+  const { user } = useAuth();
 
   const [internalSearchValue, setInternalSearchValue] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [internalNotifications, setInternalNotifications] = useState(() =>
-    readSupplierTopbarNotificationsMock(),
-  );
+  const [internalNotifications, setInternalNotifications] = useState([]);
 
   const searchRef = useRef(null);
   const notificationRef = useRef(null);
 
   const resolvedSupplierName =
     supplierName ||
-    savedProfile.companyName ||
-    savedProfile.ownerName ||
-    "المورد";
-  const resolvedSupplierRole = supplierRole || "المورد";
-  const resolvedAvatar = avatarSrc ?? savedProfile.avatarSrc ?? defaultAvatar;
+    user?.name ||
+    user?.company_name ||
+    "المستخدم";
+  const resolvedSupplierRole = supplierRole || (user?.role === "supplier" ? "المورد" : user?.role === "store" ? "المتجر" : "المستخدم");
+  const resolvedAvatar = avatarSrc ?? user?.avatar_url ?? defaultAvatar;
 
   const isSearchControlled = searchValue !== undefined;
   const resolvedSearchValue = isSearchControlled
@@ -157,10 +151,23 @@ export default function Topbar({
     navigate("/profile");
   };
 
+  useEffect(() => {
+    if (Array.isArray(notificationsProp)) return;
+    notificationService.fetchNotifications({ per_page: 10 }).then((res) => {
+      const items = res.data?.data || res.data || [];
+      setInternalNotifications(items.map((n) => ({
+        id: n.id,
+        title: n.data?.title || n.data?.title_ar || "",
+        message: n.data?.message || n.data?.message_ar || "",
+        read: !!n.read_at,
+        route: n.data?.order_id ? "/orders" : undefined,
+      })));
+    }).catch(() => {});
+  }, [notificationsProp]);
+
   const persistNotifications = (nextNotifications) => {
     if (!Array.isArray(notificationsProp)) {
       setInternalNotifications(nextNotifications);
-      saveSupplierTopbarNotificationsMock(nextNotifications);
     }
   };
 
@@ -176,6 +183,7 @@ export default function Topbar({
     );
 
     persistNotifications(nextNotifications);
+    notificationService.markAsRead(notification.id).catch(() => {});
     onNotificationSelect?.(notification);
     setNotificationsOpen(false);
 

@@ -1,32 +1,27 @@
 import { useMemo, useState } from "react";
 import { useLocation, useOutletContext } from "react-router-dom";
 import { MapPin, SearchX, Truck, X } from "lucide-react";
-import { storeSuppliers } from "../../services/store/storeSuppliers.mock";
-
 export default function Suppliers() {
   const location = useLocation();
 
-  const { searchValue = "" } = useOutletContext() ?? {};
+  const { searchValue = "", suppliers: rawSuppliers = [] } = useOutletContext() ?? {};
+
+  const storeSuppliers = useMemo(() => rawSuppliers.map((s) => ({
+    id: s.id,
+    name: s.company_name || s.name || "",
+    description: s.description || "",
+    location: s.address || s.location || "",
+    rating: s.rating || 0,
+    image: s.user?.avatar_url || s.image || null,
+    ...s,
+  })), [rawSuppliers]);
 
   const normalizedSearch = searchValue.trim().toLowerCase();
 
-  /*
-   * إذا دخلنا من Dashboard ومعنا supplierId
-   * يتم تحديد المورد من أول Render مباشرة
-   * بدون استخدام useEffect.
-   */
   const [selectedSupplier, setSelectedSupplier] = useState(() => {
     const supplierId = location.state?.supplierId;
-
-    if (!supplierId) {
-      return null;
-    }
-
-    return (
-      storeSuppliers.find(
-        (supplier) => supplier.id === supplierId,
-      ) ?? null
-    );
+    if (!supplierId) return null;
+    return storeSuppliers.find((supplier) => supplier.id === supplierId) ?? null;
   });
 
   const filteredSuppliers = useMemo(() => {

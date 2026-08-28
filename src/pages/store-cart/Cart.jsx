@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   Minus,
@@ -105,6 +105,7 @@ function CartItem({ item, onQuantityChange, onRemove }) {
 
 export default function Cart() {
   const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const {
     cartItems = [],
     updateCartItemQuantity,
@@ -257,24 +258,37 @@ export default function Cart() {
 
             <button
               type="button"
-              onClick={() => {
-                const createdOrders = createOrdersFromCart?.() ?? [];
-                if (createdOrders.length > 0) {
-                  setSearchValue?.("");
-                  navigate("/store/orders", {
-                    state: {
-                      orderNumber: createdOrders[0].orderNumber,
-                      successMessage:
-                        createdOrders.length === 1
-                          ? "تم إنشاء الطلب محلياً وإضافته إلى الطلبات الحالية."
-                          : `تم إنشاء ${createdOrders.length} طلبات حسب الموردين وإضافتها إلى الطلبات الحالية.`,
-                    },
-                  });
+              disabled={checkoutLoading}
+              onClick={async () => {
+                setCheckoutLoading(true);
+                try {
+                  const createdOrders = (await createOrdersFromCart?.()) ?? [];
+                  if (createdOrders.length > 0) {
+                    setSearchValue?.("");
+                    navigate("/store/orders", {
+                      state: {
+                        orderNumber: createdOrders[0].order_number || createdOrders[0].orderNumber,
+                        successMessage:
+                          createdOrders.length === 1
+                            ? "تم إنشاء الطلب بنجاح."
+                            : `تم إنشاء ${createdOrders.length} طلبات حسب الموردين بنجاح.`,
+                      },
+                    });
+                  } else {
+                    setSearchValue?.("");
+                    navigate("/store/orders", {
+                      state: { successMessage: "تم إتمام الطلب بنجاح." },
+                    });
+                  }
+                } catch {
+                  // error handled by interceptor
+                } finally {
+                  setCheckoutLoading(false);
                 }
               }}
-              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-[#F97316] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[#EA6B0D]"
+              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-[#F97316] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[#EA6B0D] disabled:opacity-50"
             >
-              إتمام الطلب
+              {checkoutLoading ? "جاري إتمام الطلب..." : "إتمام الطلب"}
             </button>
 
             <p className="mt-3 text-center text-[10px] leading-5 text-[#8A9099]">

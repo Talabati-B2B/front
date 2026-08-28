@@ -10,17 +10,8 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import {
-  aiSuggestion,
-  bestOffers,
-  latestStoreOrders,
-  recentPurchases,
-  restockAlert,
-  storeCategories,
-  suggestedProducts,
-  suggestedSuppliers,
-  supplierPromo,
-} from "../../services/store/storeDashboard.mock";
+import { getStatusInfo } from "../../constants/orderConstants";
+import { assetUrl } from "../../utils/assetUrl";
 
 function SectionHeader({ title, actionLabel, onAction }) {
   return (
@@ -55,65 +46,117 @@ function EmptySection({ message }) {
   );
 }
 
+const aiSuggestion = {
+  title: "اقتراح ذكي",
+  message: "بناءً على طلباتك السابقة، ننصحك بإعادة طلب المنتجات الأكثر مبيعاً لديك قبل نفاد المخزون.",
+  actionLabel: "تصفح المنتجات",
+};
+
+const restockAlert = {
+  title: "تنبيه إعادة تخزين",
+  message: "بعض المنتجات في متجرك قاربت على النفاد. راجع المخزون وأعد الطلب.",
+  actionLabel: "مراجعة المخزون",
+};
+
+const supplierPromo = {
+  title: "اكتشف موردين جدد",
+  message: "تصفح الموردين المتاحين واستفد من أفضل الأسعار والعروض الحصرية لمتجرك.",
+  linkLabel: "تصفح الموردين →",
+};
+
 export default function StoreDashboard() {
   const navigate = useNavigate();
 
   const {
     searchValue = "",
     setSearchValue,
+    products: rawProducts = [],
+    suppliers: rawSuppliers = [],
+    orders: rawOrders = [],
   } = useOutletContext() ?? {};
 
   const normalizedSearch = searchValue.trim().toLowerCase();
 
   const goTo = (path, state) => {
     setSearchValue?.("");
-
     navigate(path, state ? { state } : undefined);
   };
 
-  const filteredSuppliers = useMemo(() => {
-    if (!normalizedSearch) {
-      return suggestedSuppliers;
-    }
+  const suggestedSuppliers = useMemo(() => rawSuppliers.slice(0, 4).map((s) => ({
+    id: s.id,
+    name: s.company_name || s.name || "",
+    description: s.description || "",
+    location: s.address || s.location || "",
+    shortName: (s.company_name || s.name || "").charAt(0),
+    avatarClass: "bg-[#4C6B7B]",
+  })), [rawSuppliers]);
 
+  const suggestedProducts = useMemo(() => rawProducts.slice(0, 4).map((p) => ({
+    id: p.id,
+    name: p.name || "",
+    price: Number(p.price || p.base_price || 0),
+    supplier: p.supplier?.company_name || p.supplier || "",
+    stockStatus: p.stock > 10 ? "متوفر" : p.stock > 0 ? "مخزون منخفض" : "غير متوفر",
+    image: p.image?.path ? assetUrl(p.image.path) : (p.image || null),
+  })), [rawProducts]);
+
+  const latestOrders = useMemo(() => rawOrders.slice(0, 5).map((o) => {
+    const supplierName = o.supplier?.company_name || o.supplier?.name || "";
+    const info = getStatusInfo(o.status);
+    return {
+      id: o.id,
+      orderNumber: o.order_number || `ORD-${o.id}`,
+      supplier: supplierName,
+      supplierInitial: supplierName.charAt(0) || "م",
+      supplierClass: "bg-[#4C6B7B]",
+      status: info.label,
+      statusClass: `${info.color} ${info.bgColor}`,
+      total: Number(o.total_amount || o.total || 0),
+    };
+  }), [rawOrders]);
+
+  const storeCategories = useMemo(() => {
+    const catMap = {};
+    rawProducts.forEach((p) => {
+      const cat = p.category?.name || p.category;
+      if (!cat) return;
+      if (!catMap[cat]) catMap[cat] = { count: 0, image: p.image?.path ? assetUrl(p.image.path) : (p.image || null) };
+      catMap[cat].count++;
+    });
+    return Object.entries(catMap).slice(0, 5).map(([name, data], i) => ({
+      id: i,
+      name,
+      image: data.image,
+      suppliersCount: data.count,
+    }));
+  }, [rawProducts]);
+
+  const filteredSuppliers = useMemo(() => {
+    if (!normalizedSearch) return suggestedSuppliers;
     return suggestedSuppliers.filter((supplier) =>
-      [
-        supplier.name,
-        supplier.description,
-        supplier.location,
-      ].some((value) =>
-        value.toLowerCase().includes(normalizedSearch),
+      [supplier.name, supplier.description, supplier.location].some((value) =>
+        String(value).toLowerCase().includes(normalizedSearch),
       ),
     );
-  }, [normalizedSearch]);
+  }, [normalizedSearch, suggestedSuppliers]);
 
   const filteredProducts = useMemo(() => {
-    if (!normalizedSearch) {
-      return suggestedProducts;
-    }
-
+    if (!normalizedSearch) return suggestedProducts;
     return suggestedProducts.filter((product) =>
       [product.name, product.supplier].some((value) =>
-        value.toLowerCase().includes(normalizedSearch),
+        String(value).toLowerCase().includes(normalizedSearch),
       ),
     );
-  }, [normalizedSearch]);
+  }, [normalizedSearch, suggestedProducts]);
 
   const filteredOrders = useMemo(() => {
-    if (!normalizedSearch) {
-      return latestStoreOrders;
-    }
-
-    return latestStoreOrders.filter((order) =>
-      [
-        order.orderNumber,
-        order.supplier,
-        order.status,
-      ].some((value) =>
-        value.toLowerCase().includes(normalizedSearch),
+    if (!normalizedSearch) return latestOrders;
+    return latestOrders.filter((order) =>
+      [order.orderNumber, order.supplier, order.status].some((value) =>
+        String(value).toLowerCase().includes(normalizedSearch),
       ),
     );
-  }, [normalizedSearch]);
+  }, [normalizedSearch, latestOrders]);
 
   return (
     <section
@@ -228,65 +271,35 @@ export default function StoreDashboard() {
                 </button>
               </article>
 
-              {/* OFFERS */}
-              <article className="rounded-xl bg-[#F4F5F7] p-4">
-                <h3 className="mb-3 text-[15px] font-bold text-[#555B65]">
-                  أفضل العروض المتاحة
-                </h3>
-
-                <div className="space-y-2">
-                  {bestOffers.map((offer) => (
-                    <div
-                      key={offer.id}
-                      className="flex items-center gap-3 rounded-lg border border-[#D7DBE2] bg-white px-2.5 py-2"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#4C6B7B] text-[12px] font-bold text-white">
-                        B
-                      </span>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[10px] font-medium text-[#58606C]">
-                          {offer.supplier}
-                        </p>
-
-                        <p className="mt-0.5 text-[9px] text-[#777E8A]">
-                          {offer.delivery}
-                        </p>
-                      </div>
-
-                      <span className="shrink-0 text-[16px] font-medium text-[#A84B08]">
-                        {offer.price.toFixed(2)} ش
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              {/* RECENT SALES */}
+              {/* RECENT ORDERS SIDEBAR */}
               <div className="border-t border-[#D7DBE2] pt-5">
                 <h3 className="mb-4 text-[16px] font-bold text-[#111827]">
-                  آخر المبيعات
+                  آخر الطلبات
                 </h3>
 
                 <div className="space-y-4">
-                  {recentPurchases.map((purchase) => (
+                  {latestOrders.slice(0, 3).map((order) => (
                     <div
-                      key={purchase.id}
+                      key={order.id}
                       className="flex items-start gap-3"
                     >
                       <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#B64B00]" />
 
                       <div>
                         <p className="text-[11px] font-medium text-[#20365A]">
-                          {purchase.text}
+                          طلب {order.orderNumber} — {order.supplier}
                         </p>
 
                         <p className="mt-1 text-[9px] text-[#7A818D]">
-                          {purchase.time}
+                          {order.status} • ₪ {order.total.toFixed(2)}
                         </p>
                       </div>
                     </div>
                   ))}
+
+                  {latestOrders.length === 0 && (
+                    <p className="text-[11px] text-[#7A818D]">لا توجد طلبات حتى الآن.</p>
+                  )}
                 </div>
               </div>
 
@@ -332,11 +345,17 @@ export default function StoreDashboard() {
                     key={category.id}
                     className="flex min-h-[86px] min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-[#E1E4E9] bg-white p-3 shadow-[0_1px_4px_rgba(15,23,42,0.03)]"
                   >
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                    />
+                    {category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#EEF3FA] text-[18px] font-bold text-[#40577B]">
+                        {category.name.charAt(0)}
+                      </span>
+                    )}
 
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="whitespace-normal text-[11px] font-semibold leading-5 text-[#20365A]">
@@ -428,11 +447,17 @@ export default function StoreDashboard() {
                     >
                       {/* IMAGE */}
                       <div className="bg-[#F4F4F4] p-3">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="h-28 w-full rounded-md object-cover"
-                        />
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="h-28 w-full rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-28 w-full items-center justify-center rounded-md bg-[#EEF3FA] text-[24px] font-bold text-[#40577B]">
+                            {product.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
 
                       {/* CONTENT */}
