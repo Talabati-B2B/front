@@ -52,6 +52,14 @@ export async function fetchSupplierCategories() {
   }
 }
 
+// وحدات القياس يديرها الأدمن (تحتاج توكن مورد). بلا قائمة احتياطية: الوحدة
+// تُحفظ بمعرّفها فلا معنى لأرقام وهمية؛ الخطأ يظهر للمستخدم بدلاً من ذلك.
+export async function fetchSupplierUnits() {
+  const res = await api.get("/api/supplier/units");
+
+  return toOptions(res.data?.data ?? []);
+}
+
 // نموذج الخطوة الثالثة يستدعي هذه حسب الدور المختار
 export function fetchBusinessTypes(role) {
   return role === "supplier" ? fetchSupplierCategories() : fetchStoreTypes();

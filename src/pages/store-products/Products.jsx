@@ -18,11 +18,7 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
-import {
-  storeProductCategories,
-  storeProductSummary,
-  storeStockStatuses,
-} from "../../services/store/storeProducts.mock";
+import { STOCK_STATUSES } from "../../services/products/productService";
 
 const PRODUCTS_PER_PAGE = 10;
 
@@ -307,11 +303,56 @@ function ProductsContent({ initialSearchTerm = "" }) {
   const {
     searchValue: topbarSearchValue = "",
     products = [],
+    productsError = "",
     cartItems = [],
     addToCart,
     updateCartItemQuantity,
     removeCartItem,
   } = useOutletContext() ?? {};
+
+  // الفئات تُستخرج من المنتجات المتاحة فعلاً (مصدرها جدول categories في الباك)
+  const categoryOptions = useMemo(
+    () => [...new Set(products.map((product) => product.category))].filter(Boolean),
+    [products],
+  );
+
+  // إجمالي المنتجات ونفاد المخزون يُحسبان من البيانات الفعلية.
+  // المشتريات والأكثر طلباً تعتمدان على الطلبات، وتُربطان مع وحدة الطلبات.
+  const summaryItems = useMemo(
+    () => [
+      {
+        id: "purchases",
+        label: "إجمالي المشتريات",
+        value: "—",
+        helper: "يتوفر مع ربط الطلبات",
+        tone: "navy",
+      },
+      {
+        id: "products",
+        label: "إجمالي المنتجات",
+        value: products.length.toLocaleString("en-US"),
+        helper: "منتج متاح من الموردين",
+        tone: "green",
+      },
+      {
+        id: "out-of-stock",
+        label: "نفذ المخزون",
+        value: products
+          .filter((product) => product.stockStatus === "نفذ المخزون")
+          .length.toLocaleString("en-US"),
+        helper: "منتج غير متوفر حالياً",
+        tone: "cyan",
+      },
+      {
+        id: "popular",
+        label: "الأكثر طلباً",
+        value: "—",
+        helper: "يتوفر مع ربط الطلبات",
+        tone: "orange",
+      },
+    ],
+    [products],
+  );
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockStatusFilter, setStockStatusFilter] = useState("");
@@ -481,7 +522,7 @@ function ProductsContent({ initialSearchTerm = "" }) {
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {storeProductSummary.map((item) => (
+            {summaryItems.map((item) => (
               <SummaryCard key={item.id} item={item} />
             ))}
           </div>
@@ -528,14 +569,14 @@ function ProductsContent({ initialSearchTerm = "" }) {
                 <FilterSelect
                   label="كل الفئات"
                   value={categoryFilter}
-                  options={storeProductCategories}
+                  options={categoryOptions}
                   onChange={handleCategoryChange}
                 />
 
                 <FilterSelect
                   label="حالة المخزون"
                   value={stockStatusFilter}
-                  options={storeStockStatuses}
+                  options={STOCK_STATUSES}
                   onChange={handleStockStatusChange}
                 />
 
@@ -589,7 +630,8 @@ function ProductsContent({ initialSearchTerm = "" }) {
                         colSpan={6}
                         className="px-6 py-14 text-center text-[12px] text-[#7A818D]"
                       >
-                        لا توجد منتجات مطابقة للبحث أو خيارات التصفية.
+                        {productsError ||
+                          "لا توجد منتجات مطابقة للبحث أو خيارات التصفية."}
                       </td>
                     </tr>
                   ) : (

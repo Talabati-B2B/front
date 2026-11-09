@@ -7,10 +7,8 @@ import { useAuth } from "../../context/AuthContext";
 import StoreSidebar from "../store/StoreSidebar";
 import StoreTopbar from "../store/StoreTopbar";
 
-import {
-  getStoreProducts,
-  subscribeStoreProducts,
-} from "../../services/store/storeProducts.mock";
+import { fetchStoreProducts } from "../../services/products/productService";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 import { storeSuppliers } from "../../services/store/storeSuppliers.mock";
 
@@ -93,7 +91,8 @@ export default function StoreLayout() {
 
   const [searchValue, setSearchValue] = useState("");
 
-  const [products, setProducts] = useState(() => getStoreProducts());
+  const [products, setProducts] = useState([]);
+  const [productsError, setProductsError] = useState("");
 
   const [cartItems, setCartItems] = useState(() =>
     readStoredValue(STORAGE_KEYS.cart, []),
@@ -158,12 +157,29 @@ export default function StoreLayout() {
 
   /*
    * --------------------------------------------------
-   * PRODUCTS SUBSCRIPTION
+   * PRODUCTS (من الباك: منتجات الموردين المعتمدين)
    * --------------------------------------------------
    */
 
   useEffect(() => {
-    return subscribeStoreProducts(setProducts);
+    let active = true;
+
+    fetchStoreProducts()
+      .then((list) => {
+        if (!active) return;
+
+        setProducts(list);
+        setProductsError("");
+      })
+      .catch((error) => {
+        if (active) {
+          setProductsError(getApiErrorMessage(error, "تعذّر تحميل المنتجات."));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   /*
@@ -684,6 +700,7 @@ export default function StoreLayout() {
               setSearchValue,
 
               products,
+              productsError,
 
               cartItems,
               addToCart,

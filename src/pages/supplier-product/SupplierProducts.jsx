@@ -14,21 +14,19 @@ import {
 
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
-import { useAuth } from "../../context/AuthContext";
 import {
-  deleteStoreProduct,
-  getSupplierProducts,
-  subscribeStoreProducts,
-  updateStoreProduct,
-} from "../../services/store/storeProducts.mock";
+  STOCK_STATUSES,
+  deleteSupplierProduct,
+  fetchSupplierProducts,
+  updateSupplierProduct,
+} from "../../services/products/productService";
+import {
+  fetchSupplierCategories,
+  fetchSupplierUnits,
+} from "../../services/lookups";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const PRODUCTS_PER_PAGE = 5;
-
-const STOCK_STATUSES = [
-  "متوفر",
-  "مخزون منخفض",
-  "نفذ المخزون",
-];
 
 const STOCK_STATUS_STYLES = {
   متوفر: "bg-[#DDF8E8] text-[#15803D]",
@@ -155,20 +153,51 @@ function ModalShell({
 }
 
 export default function Products() {
-  const { user } = useAuth();
-  const [localProducts, setLocalProducts] = useState(() =>
-    getSupplierProducts(user?.id),
-  );
+  const [localProducts, setLocalProducts] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [unitOptions, setUnitOptions] = useState([]);
+  const [loadError, setLoadError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const reloadProducts = async () => {
+    try {
+      setLocalProducts(await fetchSupplierProducts());
+      setLoadError("");
+    } catch (error) {
+      setLoadError(getApiErrorMessage(error, "تعذّر تحميل المنتجات."));
+    }
+  };
 
   useEffect(() => {
-    const syncProducts = () => {
-      setLocalProducts(getSupplierProducts(user?.id));
+    let active = true;
+
+    fetchSupplierProducts()
+      .then((list) => {
+        if (!active) return;
+
+        setLocalProducts(list);
+        setLoadError("");
+      })
+      .catch((error) => {
+        if (active) {
+          setLoadError(getApiErrorMessage(error, "تعذّر تحميل المنتجات."));
+        }
+      });
+
+    fetchSupplierCategories().then((options) => {
+      if (active) setCategoryOptions(options);
+    });
+
+    fetchSupplierUnits()
+      .then((options) => {
+        if (active) setUnitOptions(options);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
     };
-
-    syncProducts();
-
-    return subscribeStoreProducts(syncProducts);
-  }, [user?.id]);
+  }, []);
 
   const [searchTerm, setSearchTerm] =
     useState("");
@@ -204,11 +233,11 @@ export default function Products() {
   const [editForm, setEditForm] = useState({
     name: "",
     sku: "",
-    category: "",
+    categoryId: "",
+    unitId: "",
     price: "",
     stockQuantity: "",
     stockUnit: "",
-    stockStatus: "متوفر",
   });
 
   const [editError, setEditError] =
@@ -325,13 +354,12 @@ export default function Products() {
     setEditForm({
       name: product.name,
       sku: product.sku,
-      category: product.category,
+      categoryId: String(product.categoryId ?? ""),
       price: String(product.price),
       stockQuantity: String(
         product.stockQuantity,
       ),
-      stockUnit: product.stockUnit,
-      stockStatus: product.stockStatus,
+      unitId: String(product.unitId ?? ""),
     });
 
     setEditError("");
@@ -346,17 +374,17 @@ export default function Products() {
     }));
   };
 
-  const handleSaveEdit = (
+  const handleSaveEdit = async (
     event,
   ) => {
     event.preventDefault();
 
+    if (isSaving) return;
+
     const name = editForm.name.trim();
     const sku = editForm.sku.trim();
-    const category =
-      editForm.category.trim();
-    const stockUnit =
-      editForm.stockUnit.trim();
+    const categoryId = editForm.categoryId;
+    const unitId = editForm.unitId;
 
     const price = Number(editForm.price);
     const stockQuantity = Number(
@@ -366,9 +394,8 @@ export default function Products() {
     if (
       !name ||
       !sku ||
-      !category ||
-      !stockUnit ||
-      !editForm.stockStatus
+      !categoryId ||
+      !unitId
     ) {
       setEditError(
         "يرجى تعبئة جميع الحقول المطلوبة.",
@@ -396,59 +423,77 @@ export default function Products() {
       return;
     }
 
-    updateStoreProduct(editingProduct.id, {
-      name,
-      sku,
-      category,
-      price,
-      stockQuantity,
-      availableQuantity: stockQuantity,
-      stockUnit,
-      stockStatus: editForm.stockStatus,
-    });
+    setIsSaving(true);
 
-    setLocalProducts(getSupplierProducts(user?.id));
-    setEditingProduct(null);
-    setEditError("");
-    setCurrentPage(1);
+    try {
+      await updateSupplierProduct(editingProduct.id, {
+        name,
+        sku,
+        categoryId,
+        price,
+        quantity: stockQuantity,
+        unitId,
+      });
+
+      await reloadProducts();
+      setEditingProduct(null);
+      setEditError("");
+    } catch (error) {
+      setEditError(
+        getApiErrorMessage(error, "تعذّر حفظ التعديلات."),
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingProduct) {
       return;
     }
 
-    deleteStoreProduct(deletingProduct.id, user?.id);
-    setLocalProducts(getSupplierProducts(user?.id));
-
-    setDeletingProduct(null);
-    setCurrentPage(1);
+    try {
+      await deleteSupplierProduct(deletingProduct.id);
+      await reloadProducts();
+      setDeletingProduct(null);
+      setCurrentPage(1);
+    } catch (error) {
+      setLoadError(getApiErrorMessage(error, "تعذّر حذف المنتج."));
+      setDeletingProduct(null);
+    }
   };
 
   const summaryCards = [
+    // المبيعات والأكثر طلباً تعتمدان على الطلبات، وتُربطان مع وحدة الطلبات
     {
       label: "إجمالي المبيعات",
-      value: "18,450 ₪",
-      helper: "+12% عن الشهر الماضي",
+      value: "—",
+      helper: "يتوفر مع ربط الطلبات",
       accent: "border-l-[#062454]",
     },
     {
       label: "إجمالي المنتجات",
-      value: "1,248",
-      helper: "+18% عن الشهر الماضي",
+      value: localProducts.length.toLocaleString("en-US"),
+      helper: "منتج مسجّل لديك",
       accent: "border-l-[#7ED7A1]",
     },
     {
       label:
         "المنتجات المتوفرة بالمخزون",
-      value: "86",
-      helper: "تغطية مخزون مستقرة",
+      value: localProducts
+        .filter(
+          (product) =>
+            product.stockStatus !==
+            "نفذ المخزون",
+        )
+        .length.toLocaleString("en-US"),
+      helper: "منتج غير منتهٍ مخزونه",
       accent: "border-l-[#7AB7C5]",
     },
     {
       label: "المنتجات الأكثر طلباً",
-      value: "540",
-      helper: "وحدة مباعة",
+      value: "—",
+      helper: "يتوفر مع ربط الطلبات",
       accent: "border-l-[#F6A26B]",
     },
   ];
@@ -597,9 +642,8 @@ export default function Products() {
                         colSpan={8}
                         className="px-6 py-12 text-center text-sm text-[#64748B]"
                       >
-                        لا توجد منتجات مطابقة
-                        لخيارات البحث أو
-                        التصفية.
+                        {loadError ||
+                          "لا توجد منتجات مطابقة لخيارات البحث أو التصفية."}
                       </td>
                     </tr>
                   ) : (
@@ -951,16 +995,31 @@ export default function Products() {
                     الفئة
                   </span>
 
-                  <input
-                    name="category"
+                  <select
+                    name="categoryId"
                     value={
-                      editForm.category
+                      editForm.categoryId
                     }
                     onChange={
                       handleEditChange
                     }
-                    className="w-full rounded-lg border border-[#C4C6D0] px-3 py-2.5 text-sm outline-none focus:border-[#062454]"
-                  />
+                    className="w-full rounded-lg border border-[#C4C6D0] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#062454]"
+                  >
+                    <option value="">
+                      اختر الفئة
+                    </option>
+
+                    {categoryOptions.map(
+                      (option) => (
+                        <option
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
                 </label>
 
                 <label className="block">
@@ -1005,45 +1064,35 @@ export default function Products() {
                     وحدة المخزون
                   </span>
 
-                  <input
-                    name="stockUnit"
-                    value={
-                      editForm.stockUnit
-                    }
-                    onChange={
-                      handleEditChange
-                    }
-                    className="w-full rounded-lg border border-[#C4C6D0] px-3 py-2.5 text-sm outline-none focus:border-[#062454]"
-                  />
-                </label>
-
-                <label className="block sm:col-span-2">
-                  <span className="mb-2 block text-sm font-semibold text-[#374151]">
-                    حالة المخزون
-                  </span>
-
                   <select
-                    name="stockStatus"
-                    value={
-                      editForm.stockStatus
-                    }
+                    name="unitId"
+                    value={editForm.unitId}
                     onChange={
                       handleEditChange
                     }
                     className="w-full rounded-lg border border-[#C4C6D0] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#062454]"
                   >
-                    {STOCK_STATUSES.map(
-                      (status) => (
+                    <option value="">
+                      اختر الوحدة
+                    </option>
+
+                    {unitOptions.map(
+                      (option) => (
                         <option
-                          key={status}
-                          value={status}
+                          key={option.value}
+                          value={option.value}
                         >
-                          {status}
+                          {option.label}
                         </option>
                       ),
                     )}
                   </select>
                 </label>
+
+                <p className="text-xs text-[#64748B] sm:col-span-2">
+                  تُحسب حالة المخزون تلقائياً من
+                  الكمية والحد الأدنى.
+                </p>
               </div>
             </div>
 
@@ -1061,7 +1110,8 @@ export default function Products() {
 
               <button
                 type="submit"
-                className="rounded-lg bg-[#062454] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0A316D]"
+                disabled={isSaving}
+                className="rounded-lg bg-[#062454] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0A316D] disabled:opacity-60"
               >
                 حفظ التعديلات
               </button>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import {
   FiCheck,
   FiChevronDown,
@@ -12,7 +11,26 @@ import {
 import Sidebar from "../../components/Sidebar";
 import Topbar from "../../components/Topbar";
 import illustration from "../../assets/images/add-product-illustration.png";
-import { createStoreProduct } from "../../services/store/storeProducts.mock";
+import { createSupplierProduct } from "../../services/products/productService";
+import {
+  fetchSupplierCategories,
+  fetchSupplierUnits,
+} from "../../services/lookups";
+import { getApiErrorMessage, getApiFieldErrors } from "../../utils/apiError";
+
+// اسم حقل الباك -> اسم حقل النموذج (لعرض أخطاء التحقق تحت الحقل الصحيح)
+const API_FIELD_TO_FORM_FIELD = {
+  name: "name",
+  description: "description",
+  category_id: "category",
+  sku: "sku",
+  price: "unitPrice",
+  suggested_price: "suggestedPrice",
+  quantity: "quantity",
+  minimum_stock: "minimumStock",
+  unit_id: "unit",
+  image: "image",
+};
 
 const INITIAL_FORM = {
   name: "",
@@ -22,16 +40,9 @@ const INITIAL_FORM = {
   unitPrice: "",
   suggestedPrice: "",
   quantity: "",
+  unit: "",
   minimumStock: "",
 };
-
-const CATEGORIES = [
-  "مواد غذائية",
-  "مشروبات",
-  "تنظيف",
-  "تغليف",
-  "مستلزمات",
-];
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
@@ -44,8 +55,12 @@ function FieldError({ message }) {
 
 export default function AddProduct() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const fileInputRef = useRef(null);
+
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState({});
@@ -61,6 +76,28 @@ export default function AddProduct() {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
   }, [imagePreview]);
+
+  // فئات المنتج من نفس مصدر فئات التسجيل (/api/public/categories)
+  useEffect(() => {
+    let active = true;
+
+    fetchSupplierCategories().then((options) => {
+      if (active) setCategories(options);
+    });
+
+    // وحدات القياس يحددها الأدمن (/api/supplier/units)
+    fetchSupplierUnits()
+      .then((options) => {
+        if (active) setUnits(options);
+      })
+      .catch(() => {
+        if (active) setSubmitError("تعذّر تحميل وحدات القياس، حدّث الصفحة.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -123,6 +160,8 @@ export default function AddProduct() {
       nextErrors.suggestedPrice = "أدخل سعر بيع مقترح أكبر من صفر";
     }
 
+    if (!form.unit) nextErrors.unit = "اختر وحدة القياس";
+
     if (form.quantity === "" || Number(form.quantity) < 0) {
       nextErrors.quantity = "أدخل كمية صحيحة";
     }
@@ -146,34 +185,49 @@ export default function AddProduct() {
     setShowConfirmation(true);
   };
 
-  const handleConfirm = () => {
-    const supplierName =
-      user?.businessName ||
-      user?.storeName ||
-      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-      "مورد";
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
 
-    const product = createStoreProduct({
-      name: form.name.trim(),
-      description: form.description.trim(),
-      category: form.category,
-      sku: form.sku.trim(),
-      price: Number(form.unitPrice),
-      suggestedPrice: Number(form.suggestedPrice),
-      quantity: Number(form.quantity),
-      availableQuantity: Number(form.quantity),
-      stockQuantity: Number(form.quantity),
-      minimumStock: Number(form.minimumStock),
-      stockUnit: "وحدة",
-      supplierId: user?.id,
-      supplierName,
-      supplier: supplierName,
-      imageName: imageFile?.name ?? "",
-    });
+    setIsSubmitting(true);
+    setSubmitError("");
 
-    setSubmittedProduct(product);
-    setShowConfirmation(false);
-    setShowSuccess(true);
+    try {
+      const product = await createSupplierProduct({
+        name: form.name.trim(),
+        description: form.description.trim(),
+        categoryId: form.category,
+        sku: form.sku.trim(),
+        price: Number(form.unitPrice),
+        suggestedPrice: Number(form.suggestedPrice),
+        quantity: Number(form.quantity),
+        minimumStock: Number(form.minimumStock),
+        unitId: form.unit,
+        image: imageFile,
+      });
+
+      setSubmittedProduct(product);
+      setShowConfirmation(false);
+      setShowSuccess(true);
+    } catch (error) {
+      // أخطاء التحقق تُعرض تحت حقولها، وأي خطأ آخر يظهر فوق الأزرار
+      const fieldErrors = getApiFieldErrors(error);
+      const nextErrors = {};
+
+      Object.entries(fieldErrors).forEach(([apiField, messages]) => {
+        const formField = API_FIELD_TO_FORM_FIELD[apiField];
+        if (formField) nextErrors[formField] = messages[0];
+      });
+
+      setErrors((current) => ({ ...current, ...nextErrors }));
+      setSubmitError(
+        Object.keys(nextErrors).length > 0
+          ? "تحقق من الحقول المظلّلة بالأحمر."
+          : getApiErrorMessage(error, "تعذّر حفظ المنتج، حاول مرة أخرى."),
+      );
+      setShowConfirmation(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -343,9 +397,9 @@ export default function AddProduct() {
                         }`}
                       >
                         <option value="">اختر فئة المنتج</option>
-                        {CATEGORIES.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
+                        {categories.map((category) => (
+                          <option key={category.value} value={category.value}>
+                            {category.label}
                           </option>
                         ))}
                       </select>
@@ -424,11 +478,23 @@ export default function AddProduct() {
                           : "border-[#BFC4CA]"
                       }`}
                     />
-                    <span className="flex h-[58px] w-[78px] items-center justify-center rounded-l-[8px] border border-[#BFC4CA] bg-white text-[13px] text-[#6E747B]">
-                      قطعة
-                    </span>
+                    <select
+                      aria-label="وحدة القياس"
+                      value={form.unit}
+                      onChange={(event) => updateField("unit", event.target.value)}
+                      className={`h-[58px] w-[110px] rounded-l-[8px] border bg-white px-2 text-[13px] text-[#2F343B] outline-none focus:border-[#6F8FC5] ${
+                        errors.unit ? "border-[#D32F2F]" : "border-[#BFC4CA]"
+                      }`}
+                    >
+                      <option value="">الوحدة</option>
+                      {units.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <FieldError message={errors.quantity} />
+                  <FieldError message={errors.quantity || errors.unit} />
                 </div>
 
                 <div>
@@ -478,8 +544,8 @@ export default function AddProduct() {
                           : "border-[#BFC4CA]"
                       }`}
                     />
-                    <span className="flex h-[58px] w-[78px] items-center justify-center rounded-l-[8px] border border-[#BFC4CA] bg-white text-[13px] text-[#6E747B]">
-                      قطعة
+                    <span className="flex h-[58px] w-[110px] items-center justify-center rounded-l-[8px] border border-[#BFC4CA] bg-white text-[13px] text-[#6E747B]">
+                      {units.find((option) => String(option.value) === String(form.unit))?.label ?? "الوحدة"}
                     </span>
                   </div>
                   <FieldError message={errors.minimumStock} />
@@ -494,6 +560,12 @@ export default function AddProduct() {
                 </p>
               </div>
             </section>
+
+            {submitError && (
+              <p className="mt-6 text-[13px] font-medium text-[#D32F2F]">
+                {submitError}
+              </p>
+            )}
 
             <div className="mt-8 flex flex-wrap justify-start gap-5">
               <button
@@ -531,7 +603,8 @@ export default function AddProduct() {
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="flex h-10 min-w-[94px] items-center justify-center gap-2 rounded-[6px] bg-[#2F67EB] px-4 text-[14px] font-semibold text-white"
+                disabled={isSubmitting}
+                className="flex h-10 min-w-[94px] items-center justify-center gap-2 rounded-[6px] bg-[#2F67EB] px-4 text-[14px] font-semibold text-white disabled:opacity-60"
               >
                 <FiCheck size={17} />
                 موافق
