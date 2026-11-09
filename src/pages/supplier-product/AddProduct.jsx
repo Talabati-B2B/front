@@ -4,7 +4,6 @@ import {
   FiCheck,
   FiChevronDown,
   FiClipboard,
-  FiInfo,
   FiUploadCloud,
   FiX,
 } from "react-icons/fi";
@@ -23,11 +22,8 @@ const API_FIELD_TO_FORM_FIELD = {
   name: "name",
   description: "description",
   category_id: "category",
-  sku: "sku",
   price: "unitPrice",
-  suggested_price: "suggestedPrice",
   quantity: "quantity",
-  minimum_stock: "minimumStock",
   unit_id: "unit",
   image: "image",
 };
@@ -36,12 +32,9 @@ const INITIAL_FORM = {
   name: "",
   description: "",
   category: "",
-  sku: "",
   unitPrice: "",
-  suggestedPrice: "",
   quantity: "",
   unit: "",
-  minimumStock: "",
 };
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -150,24 +143,15 @@ export default function AddProduct() {
     if (!form.name.trim()) nextErrors.name = "اسم المنتج مطلوب";
     if (!form.description.trim()) nextErrors.description = "وصف المنتج مطلوب";
     if (!form.category) nextErrors.category = "فئة المنتج مطلوبة";
-    if (!form.sku.trim()) nextErrors.sku = "رمز المنتج (SKU) مطلوب";
 
     if (form.unitPrice === "" || Number(form.unitPrice) <= 0) {
       nextErrors.unitPrice = "أدخل سعر وحدة أكبر من صفر";
-    }
-
-    if (form.suggestedPrice === "" || Number(form.suggestedPrice) <= 0) {
-      nextErrors.suggestedPrice = "أدخل سعر بيع مقترح أكبر من صفر";
     }
 
     if (!form.unit) nextErrors.unit = "اختر وحدة القياس";
 
     if (form.quantity === "" || Number(form.quantity) < 0) {
       nextErrors.quantity = "أدخل كمية صحيحة";
-    }
-
-    if (form.minimumStock === "" || Number(form.minimumStock) < 0) {
-      nextErrors.minimumStock = "أدخل حدًا أدنى صحيحًا";
     }
 
     const imageError = validateImage(imageFile);
@@ -196,11 +180,8 @@ export default function AddProduct() {
         name: form.name.trim(),
         description: form.description.trim(),
         categoryId: form.category,
-        sku: form.sku.trim(),
         price: Number(form.unitPrice),
-        suggestedPrice: Number(form.suggestedPrice),
         quantity: Number(form.quantity),
-        minimumStock: Number(form.minimumStock),
         unitId: form.unit,
         image: imageFile,
       });
@@ -411,22 +392,6 @@ export default function AddProduct() {
                     </div>
                     <FieldError message={errors.category} />
                   </div>
-
-                  <div>
-                    <label className="mb-2 block text-[14px] font-semibold text-[#22252A]">
-                      رمز المنتج (SKU)<span className="text-[#F47821]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.sku}
-                      onChange={(event) => updateField("sku", event.target.value)}
-                      placeholder="اكتب رمز منتجك أو امسح رمز الباركود"
-                      className={`h-[58px] w-full rounded-[8px] border bg-white px-4 text-[14px] text-[#2F343B] outline-none placeholder:text-[#A4A8AE] focus:border-[#6F8FC5] ${
-                        errors.sku ? "border-[#D32F2F]" : "border-[#BFC4CA]"
-                      }`}
-                    />
-                    <FieldError message={errors.sku} />
-                  </div>
                 </div>
               </div>
 
@@ -497,67 +462,6 @@ export default function AddProduct() {
                   <FieldError message={errors.quantity || errors.unit} />
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-[14px] font-semibold text-[#22252A]">
-                    سعر البيع المقترح<span className="text-[#F47821]">*</span>
-                  </label>
-                  <div className="flex" dir="rtl">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.suggestedPrice}
-                      onChange={(event) =>
-                        updateField("suggestedPrice", event.target.value)
-                      }
-                      placeholder="0.0"
-                      className={`h-[58px] min-w-0 flex-1 rounded-r-[8px] border border-l-0 bg-white px-4 text-[14px] text-[#2F343B] outline-none placeholder:text-[#8F9399] focus:border-[#6F8FC5] ${
-                        errors.suggestedPrice
-                          ? "border-[#D32F2F]"
-                          : "border-[#BFC4CA]"
-                      }`}
-                    />
-                    <span className="flex h-[58px] w-[78px] items-center justify-center rounded-l-[8px] border border-[#BFC4CA] bg-white text-[13px] text-[#6E747B]">
-                      شيكل
-                    </span>
-                  </div>
-                  <FieldError message={errors.suggestedPrice} />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[14px] font-semibold text-[#22252A]">
-                    الحد الأدنى<span className="text-[#F47821]">*</span>
-                  </label>
-                  <div className="flex" dir="rtl">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={form.minimumStock}
-                      onChange={(event) =>
-                        updateField("minimumStock", event.target.value)
-                      }
-                      placeholder="0"
-                      className={`h-[58px] min-w-0 flex-1 rounded-r-[8px] border border-l-0 bg-white px-4 text-[14px] text-[#2F343B] outline-none placeholder:text-[#8F9399] focus:border-[#6F8FC5] ${
-                        errors.minimumStock
-                          ? "border-[#D32F2F]"
-                          : "border-[#BFC4CA]"
-                      }`}
-                    />
-                    <span className="flex h-[58px] w-[110px] items-center justify-center rounded-l-[8px] border border-[#BFC4CA] bg-white text-[13px] text-[#6E747B]">
-                      {units.find((option) => String(option.value) === String(form.unit))?.label ?? "الوحدة"}
-                    </span>
-                  </div>
-                  <FieldError message={errors.minimumStock} />
-                </div>
-              </div>
-
-              <div className="mx-auto mt-8 flex min-h-[82px] max-w-[880px] items-center justify-center gap-4 rounded-[14px] bg-[#EDF4FF] px-5 py-4 text-center text-[14px] font-medium text-[#062454] sm:text-[15px]">
-                <FiInfo size={27} className="shrink-0 text-[#0F57B5]" />
-                <p>
-                  سعر البيع المقترح هو السعر الذي تقترحه بناءً على سعر الشراء
-                  والربح المناسب
-                </p>
               </div>
             </section>
 
@@ -632,7 +536,9 @@ export default function AddProduct() {
         >
           <span className="flex w-full max-w-[610px] cursor-pointer flex-col items-center rounded-[14px] bg-white px-8 py-11 shadow-[0_16px_45px_rgba(15,23,42,0.18)]">
             <span className="text-center text-[17px] font-medium text-[#20242A]">
-              تمت إضافة منتجك بنجاح
+              {submittedProduct?.merged
+                ? "المنتج موجود مسبقاً بنفس البيانات، فأُضيفت الكمية إلى مخزونه"
+                : "تمت إضافة منتجك بنجاح"}
             </span>
             <FiCheck
               aria-hidden="true"

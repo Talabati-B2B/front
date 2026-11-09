@@ -232,7 +232,6 @@ export default function Products() {
 
   const [editForm, setEditForm] = useState({
     name: "",
-    sku: "",
     categoryId: "",
     unitId: "",
     price: "",
@@ -353,7 +352,6 @@ export default function Products() {
 
     setEditForm({
       name: product.name,
-      sku: product.sku,
       categoryId: String(product.categoryId ?? ""),
       price: String(product.price),
       stockQuantity: String(
@@ -382,7 +380,6 @@ export default function Products() {
     if (isSaving) return;
 
     const name = editForm.name.trim();
-    const sku = editForm.sku.trim();
     const categoryId = editForm.categoryId;
     const unitId = editForm.unitId;
 
@@ -393,7 +390,6 @@ export default function Products() {
 
     if (
       !name ||
-      !sku ||
       !categoryId ||
       !unitId
     ) {
@@ -428,7 +424,6 @@ export default function Products() {
     try {
       await updateSupplierProduct(editingProduct.id, {
         name,
-        sku,
         categoryId,
         price,
         quantity: stockQuantity,
@@ -976,17 +971,16 @@ export default function Products() {
 
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-[#374151]">
-                    SKU
+                    رمز المنتج (SKU)
                   </span>
 
                   <input
-                    name="sku"
-                    value={editForm.sku}
-                    onChange={
-                      handleEditChange
-                    }
+                    value={editingProduct?.sku ?? ""}
+                    readOnly
+                    disabled
                     dir="ltr"
-                    className="w-full rounded-lg border border-[#C4C6D0] px-3 py-2.5 text-sm outline-none focus:border-[#062454]"
+                    title="يُولَّد تلقائياً من الاسم والفئة والوحدة والسعر"
+                    className="w-full rounded-lg border border-[#C4C6D0] bg-[#F3F4F6] px-3 py-2.5 text-sm text-[#6B7280] outline-none"
                   />
                 </label>
 

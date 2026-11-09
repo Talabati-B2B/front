@@ -31,7 +31,6 @@ export function mapProduct(raw) {
     category: raw.category?.name ?? "",
 
     price: Number(raw.price) || 0,
-    suggestedPrice: Number(raw.suggested_price) || 0,
 
     availableQuantity: quantity,
     stockQuantity: quantity,
@@ -58,8 +57,8 @@ export async function fetchSupplierProducts() {
 }
 
 /**
- * data: { name, description, categoryId, sku, price, suggestedPrice,
- *         quantity, minimumStock, unitId, image: File }
+ * data: { name, description, categoryId, price, quantity, unitId, image: File }
+ * الرمز (SKU) يولّده الباك تلقائياً من اسم المنتج والفئة والوحدة والسعر.
  */
 export async function createSupplierProduct(data) {
   const form = new FormData();
@@ -67,24 +66,21 @@ export async function createSupplierProduct(data) {
   form.append("name", data.name);
   form.append("description", data.description);
   form.append("category_id", data.categoryId);
-  form.append("sku", data.sku);
   form.append("price", data.price);
-  form.append("suggested_price", data.suggestedPrice);
   form.append("quantity", data.quantity);
-  form.append("minimum_stock", data.minimumStock);
   form.append("unit_id", data.unitId);
   form.append("image", data.image);
 
   const res = await api.post("/api/supplier/products", form);
 
-  return mapProduct(res.data.data);
+  // merged: المنتج موجود بنفس البيانات فأُضيفت الكمية لمخزونه بدل إنشاء نسخة
+  return { ...mapProduct(res.data.data), merged: Boolean(res.data.merged) };
 }
 
-/** changes: { name, sku, categoryId, price, quantity, unitId } */
+/** changes: { name, categoryId, price, quantity, unitId } (الرمز يُعاد توليده في الباك عند تغيّر هوية المنتج) */
 export async function updateSupplierProduct(id, changes) {
   const res = await api.put(`/api/supplier/products/${id}`, {
     name: changes.name,
-    sku: changes.sku,
     category_id: changes.categoryId,
     price: changes.price,
     quantity: changes.quantity,
