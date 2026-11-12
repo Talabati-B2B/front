@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
-import { useAuth } from "../../context/AuthContext";
-
 import StoreSidebar from "../store/StoreSidebar";
 import StoreTopbar from "../store/StoreTopbar";
 
@@ -13,17 +11,19 @@ import { getApiErrorMessage } from "../../utils/apiError";
 import { storeSuppliers } from "../../services/store/storeSuppliers.mock";
 
 import {
-  createOrdersFromCart as createSharedOrdersFromCart,
-  getOrdersForStore,
-  subscribeOrders,
-} from "../../services/order/order";
+  addCartItem,
+  checkoutCart,
+  fetchCart,
+  fetchMyOrders,
+  removeCartItemById,
+  updateCartItem,
+} from "../../services/store/storeCartService";
 
 import { storeProfile as defaultStoreProfile } from "../../services/store/storeProfile.mock";
 
 import { storeNotifications as defaultNotifications } from "../../services/store/storeNotifications.mock";
 
 const STORAGE_KEYS = {
-  cart: "talabaty-store-cart",
   profile: "talabaty-store-profile",
   notifications: "talabaty-store-notifications",
 };
@@ -61,28 +61,6 @@ export default function StoreLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { user } = useAuth();
-
-  /*
-   * --------------------------------------------------
-   * STORE ID
-   * --------------------------------------------------
-   */
-
-  const userEmail = String(user?.email ?? "")
-    .trim()
-    .toLowerCase();
-
-  const userId = user?.id ?? null;
-
-  const userStoreId = user?.storeId ?? null;
-
-  /*
-   * الحساب التجريبي للمتجر مربوط بـ Store ID = 1
-   */
-  const storeId =
-    userEmail === "store@test.com" ? 1 : (userStoreId ?? userId ?? null);
-
   /*
    * --------------------------------------------------
    * GENERAL STATE
@@ -94,9 +72,10 @@ export default function StoreLayout() {
   const [products, setProducts] = useState([]);
   const [productsError, setProductsError] = useState("");
 
-  const [cartItems, setCartItems] = useState(() =>
-    readStoredValue(STORAGE_KEYS.cart, []),
-  );
+  // السلة والطلبات من الباك (لم تعد محفوظة في المتصفح)
+  const [cartItems, setCartItems] = useState([]);
+  const [cartError, setCartError] = useState("");
+  const [storeOrders, setStoreOrders] = useState([]);
 
   const [storeProfile, setStoreProfile] = useState(() =>
     readStoredValue(STORAGE_KEYS.profile, defaultStoreProfile),
@@ -110,30 +89,35 @@ export default function StoreLayout() {
 
   /*
    * --------------------------------------------------
-   * ORDER REVISION
-   * --------------------------------------------------
-   *
-   * لا نخزن الطلبات نفسها في state.
-   *
-   * فقط نرفع revision عند أي تغيير،
-   * وبعدها نعيد قراءتها من المصدر المشترك.
-   */
-
-  const [ordersRevision, setOrdersRevision] = useState(0);
-
-  /*
-   * --------------------------------------------------
-   * SHARED STORE ORDERS
+   * CART & ORDERS (من الباك)
    * --------------------------------------------------
    */
 
-  const storeOrders = useMemo(() => {
-    if (storeId == null) {
-      return [];
-    }
+  const refreshCart = useCallback(
+    () =>
+      fetchCart()
+        .then((items) => {
+          setCartItems(items);
+          setCartError("");
+        })
+        .catch((error) => {
+          setCartError(getApiErrorMessage(error, "تعذّر تحميل السلة."));
+        }),
+    [],
+  );
 
-    return getOrdersForStore(storeId);
-  }, [storeId, ordersRevision]);
+  const refreshOrders = useCallback(
+    () =>
+      fetchMyOrders()
+        .then(setStoreOrders)
+        .catch(() => {}),
+    [],
+  );
+
+  useEffect(() => {
+    refreshCart();
+    refreshOrders();
+  }, [refreshCart, refreshOrders]);
 
   const currentOrders = useMemo(
     () => storeOrders.filter((order) => !order.isPrevious),
@@ -184,33 +168,9 @@ export default function StoreLayout() {
 
   /*
    * --------------------------------------------------
-   * ORDERS SUBSCRIPTION
-   * --------------------------------------------------
-   *
-   * create / accept / reject
-   * كلها تعمل event من order.js.
-   *
-   * نحن فقط نعيد render وبعدها نقرأ
-   * أحدث نسخة من getOrdersForStore().
-   */
-
-  useEffect(() => {
-    const handleOrdersChange = () => {
-      setOrdersRevision((revision) => revision + 1);
-    };
-
-    return subscribeOrders(handleOrdersChange);
-  }, []);
-
-  /*
-   * --------------------------------------------------
    * LOCAL STORAGE
    * --------------------------------------------------
    */
-
-  useEffect(() => {
-    writeStoredValue(STORAGE_KEYS.cart, cartItems);
-  }, [cartItems]);
 
   useEffect(() => {
     writeStoredValue(STORAGE_KEYS.profile, storeProfile);
@@ -232,106 +192,85 @@ export default function StoreLayout() {
 
   /*
    * --------------------------------------------------
-   * ADD TO CART
+   * CART ACTIONS
    * --------------------------------------------------
+   *
+   * نتحقق محلياً بسرعة ثم ننفذ على الباك ونعيد قراءة السلة،
+   * فالباك هو المصدر الحقيقي للكميات والأسعار.
    */
+
+  const runCartAction = (action) => {
+    setCartError("");
+
+    return action()
+      .catch((error) => {
+        setCartError(getApiErrorMessage(error, "تعذّر تنفيذ العملية على السلة."));
+      })
+      .then(refreshCart);
+  };
 
   const addToCart = (product) => {
     if (!product || product.availableQuantity <= 0) {
       return false;
     }
 
-    let added = false;
+    const existing = cartItems.find(
+      (item) => String(item.id) === String(product.id),
+    );
 
-    setCartItems((currentItems) => {
-      const existingIndex = currentItems.findIndex(
-        (item) => String(item.id) === String(product.id),
-      );
+    if (existing && existing.quantity >= product.availableQuantity) {
+      return false;
+    }
 
-      if (existingIndex === -1) {
-        added = true;
+    runCartAction(() => addCartItem(product.id, 1));
 
-        return [
-          ...currentItems,
-          {
-            ...product,
-            quantity: 1,
-          },
-        ];
-      }
-
-      const existingItem = currentItems[existingIndex];
-
-      if (existingItem.quantity >= product.availableQuantity) {
-        return currentItems;
-      }
-
-      const nextItems = [...currentItems];
-
-      nextItems[existingIndex] = {
-        ...existingItem,
-
-        quantity: existingItem.quantity + 1,
-      };
-
-      added = true;
-
-      return nextItems;
-    });
-
-    return added;
+    return true;
   };
-
-  /*
-   * --------------------------------------------------
-   * UPDATE CART QUANTITY
-   * --------------------------------------------------
-   */
 
   const updateCartItemQuantity = (productId, nextQuantity) => {
-    setCartItems((currentItems) =>
-      currentItems.map((item) => {
-        if (String(item.id) !== String(productId)) {
-          return item;
-        }
-
-        const normalizedQuantity = Math.min(
-          item.availableQuantity,
-
-          Math.max(1, Number(nextQuantity) || 1),
-        );
-
-        return {
-          ...item,
-
-          quantity: normalizedQuantity,
-        };
-      }),
+    const item = cartItems.find(
+      (cartItem) => String(cartItem.id) === String(productId),
     );
-  };
 
-  /*
-   * --------------------------------------------------
-   * REMOVE CART ITEM
-   * --------------------------------------------------
-   */
+    if (!item) {
+      return;
+    }
+
+    const normalizedQuantity = Math.min(
+      item.availableQuantity,
+      Math.max(1, Number(nextQuantity) || 1),
+    );
+
+    if (normalizedQuantity === item.quantity) {
+      return;
+    }
+
+    runCartAction(() => updateCartItem(item.cartItemId, normalizedQuantity));
+  };
 
   const removeCartItem = (productId) => {
-    setCartItems((currentItems) =>
-      currentItems.filter((item) => String(item.id) !== String(productId)),
+    const item = cartItems.find(
+      (cartItem) => String(cartItem.id) === String(productId),
     );
+
+    if (!item) {
+      return;
+    }
+
+    runCartAction(() => removeCartItemById(item.cartItemId));
   };
 
   /*
    * --------------------------------------------------
-   * REORDER
+   * REORDER (إعادة طلب أصناف طلب سابق)
    * --------------------------------------------------
    */
 
   const reorderItems = (orderItems = []) => {
     let unavailableCount = 0;
+    const toAdd = [];
 
-    const availableProducts = orderItems.reduce((available, orderItem) => {
+    orderItems.forEach((orderItem) => {
       const currentProduct = products.find(
         (product) => String(product.id) === String(orderItem.productId),
       );
@@ -339,136 +278,66 @@ export default function StoreLayout() {
       if (!currentProduct || currentProduct.availableQuantity <= 0) {
         unavailableCount += 1;
 
-        return available;
+        return;
       }
 
-      available.push({
-        ...currentProduct,
+      const inCart =
+        cartItems.find((item) => String(item.id) === String(currentProduct.id))
+          ?.quantity ?? 0;
 
-        quantity: Math.min(
-          currentProduct.availableQuantity,
+      const quantity = Math.min(
+        currentProduct.availableQuantity - inCart,
+        Math.max(1, Number(orderItem.quantity) || 1),
+      );
 
-          Math.max(1, Number(orderItem.quantity) || 1),
-        ),
-      });
+      if (quantity <= 0) {
+        return;
+      }
 
-      return available;
-    }, []);
-
-    if (availableProducts.length === 0) {
-      return {
-        addedCount: 0,
-        unavailableCount,
-      };
-    }
-
-    setCartItems((currentItems) => {
-      const nextItems = [...currentItems];
-
-      availableProducts.forEach((product) => {
-        const existingIndex = nextItems.findIndex(
-          (item) => String(item.id) === String(product.id),
-        );
-
-        if (existingIndex === -1) {
-          nextItems.push(product);
-
-          return;
-        }
-
-        const existingItem = nextItems[existingIndex];
-
-        nextItems[existingIndex] = {
-          ...product,
-
-          quantity: Math.min(
-            product.availableQuantity,
-
-            existingItem.quantity + product.quantity,
-          ),
-        };
-      });
-
-      return nextItems;
+      toAdd.push({ id: currentProduct.id, quantity });
     });
 
-    return {
-      addedCount: availableProducts.length,
+    if (toAdd.length > 0) {
+      runCartAction(async () => {
+        for (const item of toAdd) {
+          await addCartItem(item.id, item.quantity);
+        }
+      });
+    }
 
+    return {
+      addedCount: toAdd.length,
       unavailableCount,
     };
   };
 
   /*
    * --------------------------------------------------
-   * CREATE ORDERS
+   * CREATE ORDERS (طلب لكل مورد في السلة)
    * --------------------------------------------------
    */
 
-  const createOrdersFromCart = () => {
-    if (cartItems.length === 0 || storeId == null) {
+  const createOrdersFromCart = async () => {
+    if (cartItems.length === 0) {
       return [];
     }
 
-    const createdOrders = createSharedOrdersFromCart(cartItems, {
-      ...user,
-
-      /*
-       * مهم:
-       * order.js يعتمد على id كـ storeId.
-       */
-      id: storeId,
-
-      storeId,
-
-      storeName: storeProfile.storeName,
-
-      businessName: user?.businessName || storeProfile.storeName,
-
-      address: storeProfile.address,
-
-      deliveryAddress: storeProfile.address,
+    // عند الفشل ترمي رسالة الباك ليعرضها Cart.jsx
+    const createdOrders = await checkoutCart().catch((error) => {
+      throw new Error(getApiErrorMessage(error, "تعذّر إنشاء الطلب."));
     });
 
-    if (createdOrders.length === 0) {
-      return [];
-    }
-
-    /*
-     * createSharedOrdersFromCart يطلق
-     * orders-changed event.
-     *
-     * لكن نرفع revision أيضاً هنا لضمان
-     * تحديث الواجهة فوراً.
-     */
-
-    setOrdersRevision((revision) => revision + 1);
-
-    /*
-     * إفراغ السلة بعد نجاح إنشاء الطلب.
-     */
-
-    setCartItems([]);
-
-    /*
-     * Notifications
-     */
+    await Promise.all([refreshCart(), refreshOrders()]);
 
     setNotifications((current) => [
       ...createdOrders.map((order, index) => ({
         id: Date.now() + index,
-
         title: "تم إنشاء الطلب",
-
         message: `تم إنشاء ${order.orderNumber} لدى ${order.supplierName}.`,
-
         orderNumber: order.orderNumber,
-
         read: false,
-
         createdAt: "الآن",
       })),
-
       ...current,
     ]);
 
@@ -703,6 +572,7 @@ export default function StoreLayout() {
               productsError,
 
               cartItems,
+              cartError,
               addToCart,
               updateCartItemQuantity,
               removeCartItem,

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   Minus,
@@ -107,11 +107,15 @@ export default function Cart() {
   const navigate = useNavigate();
   const {
     cartItems = [],
+    cartError = "",
     updateCartItemQuantity,
     removeCartItem,
     createOrdersFromCart,
     setSearchValue,
   } = useOutletContext() ?? {};
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   const supplierGroups = useMemo(() => {
     const groups = new Map();
@@ -257,25 +261,42 @@ export default function Cart() {
 
             <button
               type="button"
-              onClick={() => {
-                const createdOrders = createOrdersFromCart?.() ?? [];
-                if (createdOrders.length > 0) {
-                  setSearchValue?.("");
-                  navigate("/store/orders", {
-                    state: {
-                      orderNumber: createdOrders[0].orderNumber,
-                      successMessage:
-                        createdOrders.length === 1
-                          ? "تم إنشاء الطلب محلياً وإضافته إلى الطلبات الحالية."
-                          : `تم إنشاء ${createdOrders.length} طلبات حسب الموردين وإضافتها إلى الطلبات الحالية.`,
-                    },
-                  });
+              disabled={isSubmitting}
+              onClick={async () => {
+                setCheckoutError("");
+                setIsSubmitting(true);
+
+                try {
+                  const createdOrders = (await createOrdersFromCart?.()) ?? [];
+
+                  if (createdOrders.length > 0) {
+                    setSearchValue?.("");
+                    navigate("/store/orders", {
+                      state: {
+                        orderNumber: createdOrders[0].orderNumber,
+                        successMessage:
+                          createdOrders.length === 1
+                            ? "تم إرسال الطلب إلى المورد وبانتظار موافقته."
+                            : `تم إرسال ${createdOrders.length} طلبات حسب الموردين وبانتظار موافقتهم.`,
+                      },
+                    });
+                  }
+                } catch (error) {
+                  setCheckoutError(error.message);
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
-              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-[#F97316] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[#EA6B0D]"
+              className="flex min-h-11 w-full items-center justify-center rounded-lg bg-[#F97316] px-4 text-[14px] font-bold text-white transition-colors hover:bg-[#EA6B0D] disabled:opacity-60"
             >
               إتمام الطلب
             </button>
+
+            {(checkoutError || cartError) && (
+              <p className="mt-3 text-[12px] font-medium leading-5 text-[#D32F2F]">
+                {checkoutError || cartError}
+              </p>
+            )}
 
             <p className="mt-3 text-center text-[10px] leading-5 text-[#8A9099]">
               سيتم فصل المنتجات إلى طلبات حسب المورد عند الإتمام.
